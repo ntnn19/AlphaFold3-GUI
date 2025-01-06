@@ -10,9 +10,9 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import io
+import datetime
 import py3Dmol
 from Bio import PDB
-
 # Import your modules (make sure they are correctly installed in your environment)
 from afusion.execution import run_alphafold
 from afusion.sequence_input import (
@@ -37,6 +37,20 @@ from afusion.visualization import (
 
 # Configure the logger
 logger.add("afusion.log", rotation="1 MB", level="DEBUG")
+
+
+# create job dir
+def create_job_dir(base_path="/scratch1/common/alphafold3_jobs"):
+    # Get the current timestamp in a readable format
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # Create the job directory with the timestamp
+    job_dir = os.path.join(base_path, f"job_{timestamp}")
+    os.makedirs(job_dir, exist_ok=True)
+
+    logger.info(f"Job directory created: {job_dir}")
+    return job_dir
+
 
 # Redefine the visualize_structure function to change the background color to black
 def visualize_structure(residue_bfactors, ligands, cif_content):
@@ -289,8 +303,17 @@ def main():
     st.header("⚙️ AlphaFold 3 Execution Settings")
     with st.expander("Configure Execution Settings", expanded=True):
         # Paths for execution
-        af_input_path = st.text_input("AF Input Path", value=os.path.expanduser("~/af_input"), help="Path to AlphaFold input directory.")
-        af_output_path = st.text_input("AF Output Path", value=os.path.expanduser("~/af_output"), help="Path to AlphaFold output directory.")
+        #af_input_path = st.text_input("AF Input Path", value=os.path.expanduser("~/af_input"), help="Path to AlphaFold input directory.")
+        job_dir = create_job_dir()
+        af_input_path_name = "af_input"
+        af_output_path_name = "af_output"
+        af_input_path_dir = os.path.join(job_dir, af_input_path_name)
+        af_output_path_dir = os.path.join(job_dir, af_output_path_name)
+#        os.makedirs(af_output_path_dir, exist_ok=True)
+        af_input_path = st.text_input("AF Input Path", value=af_input_path_dir, help="Path to AlphaFold input directory.")
+        af_output_path = st.text_input("AF Output Path", value=af_output_path_dir, help="Path to AlphaFold output directory.")
+        #af_input_path = st.text_input("AF Input Path", value=os.path.expanduser("~/af_input"), help="Path to AlphaFold input directory.")
+        #af_output_path = st.text_input("AF Output Path", value=os.path.expanduser("~/af_output"), help="Path to AlphaFold output directory.")
         model_parameters_dir = st.text_input("Model Parameters Directory", value="/path/to/models", help="Path to model parameters directory.")
         databases_dir = st.text_input("Databases Directory", value="/path/to/databases", help="Path to databases directory.")
 
