@@ -36,7 +36,7 @@ from afusion.visualization import (
 )
 
 # Configure the logger
-logger.add("afusion.log", rotation="10000 MB", level="DEBUG")
+logger.add("afusion.log", rotation="1 MB", level="DEBUG")
 
 
 # create job dir
@@ -316,8 +316,6 @@ def main():
         #af_output_path = st.text_input("AF Output Path", value=os.path.expanduser("~/af_output"), help="Path to AlphaFold output directory.")
         model_parameters_dir = st.text_input("Model Parameters Directory", value="/scratch1/common/singularity_containers/alphafold3/weights", help="Path to model parameters directory.")
         databases_dir = st.text_input("Databases Directory", value="/scratch1/common/databases/af3_db", help="Path to databases directory.")
-#        model_parameters_dir = st.text_input("Model Parameters Directory", value="/path/to/models", help="Path to model parameters directory.")
-#        databases_dir = st.text_input("Databases Directory", value="/path/to/databases", help="Path to databases directory.")
 
         logger.debug(f"Execution settings: af_input_path={af_input_path}, af_output_path={af_output_path}, model_parameters_dir={model_parameters_dir}, databases_dir={databases_dir}")
 
