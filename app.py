@@ -349,6 +349,7 @@ def main():
     json_save_path = os.path.join(af_input_path, "fold_input.json")
     try:
         os.makedirs(af_input_path, exist_ok=True)
+        os.makedirs(af_output_path, exist_ok=True)
         with open(json_save_path, "w") as json_file:
             json.dump(alphafold_input, json_file, indent=2)
         st.success(f"JSON file saved to {json_save_path}")
@@ -360,31 +361,31 @@ def main():
     # Run AlphaFold 3
     if st.button("Run AlphaFold 3 Now ▶️"):
         # Build the Docker command
-        docker_command = (
-            f"docker run --rm "
-            f"--volume {af_input_path}:/root/af_input "
-            f"--volume {af_output_path}:/root/af_output "
-            f"--volume {model_parameters_dir}:/root/models "
-            f"--volume {databases_dir}:/root/public_databases "
-            f"--gpus all "
-            f"alphafold3 "
-            f"python run_alphafold.py "
+        singularity_command = (
+            f"singularity run --nv "
+            f"--bind {af_input_path}:/root/af_input "
+            f"--bind {af_output_path}:/root/af_output "
+            f"--bind {model_parameters_dir}:/root/models "
+            f"--bind {databases_dir}:/root/public_databases "
+            f"/scratch1/common/singularity_containers/alphafold3/alphafold3_latest_parallel_a100_40gb.sif "
+            f"python /app/alphafold/run_alphafold.py "
             f"--json_path=/root/af_input/fold_input.json "
             f"--model_dir=/root/models "
             f"--output_dir=/root/af_output "
+            f"--db_dir=/root/public_databases "
             f"{'--run_data_pipeline' if run_data_pipeline else ''} "
             f"{'--run_inference' if run_inference else ''} "
             f"{'--buckets ' + ','.join(map(str, bucket_sizes)) if bucket_sizes else ''}"
         )
 
         st.markdown("#### Docker Command:")
-        st.code(docker_command, language="bash")
-        logger.debug(f"Docker command: {docker_command}")
+        st.code(singularity_command, language="bash")
+        logger.debug(f"Docker command: {singularity_command}")
 
         # Run the command and display output in a box
         with st.spinner('AlphaFold 3 is running...'):
             output_placeholder = st.empty()
-            output = run_alphafold(docker_command, placeholder=output_placeholder)
+            output = run_alphafold(singularity_command, job_dir, placeholder=output_placeholder)
 
         # Display the output in an expander box
         st.markdown("#### Command Output:")
