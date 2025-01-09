@@ -22,9 +22,10 @@ def run_alphafold(command,slurm_log_dir, placeholder=None, slurm_time="48:00:00"
     slurm_script_path = tempfile.mktemp(suffix=".sh", prefix="alphafold_slurm_")
     slurm_script_content = f"""#!/bin/bash
 #SBATCH --job-name=alphafold_run
-#SBATCH --output={slurm_log_dir}/run/stdout-%x-%j.log
-#SBATCH --error={slurm_log_dir}/run/stderr-%x-%j.log
+#SBATCH --output={slurm_log_dir}/run/stdout-%j.log
+#SBATCH --error={slurm_log_dir}/run/stderr-%j.log
 #SBATCH --time={slurm_time}
+#SBATCH --gpus=1
 
 # Run the command
 {command}
@@ -58,8 +59,8 @@ def run_alphafold(command,slurm_log_dir, placeholder=None, slurm_time="48:00:00"
                 return status_result.stdout
             
             # Read and log Slurm output
-            if os.path.exists(f"slurm_output_{job_id}.log"):
-                with open(f"slurm_output_{job_id}.log", "r") as output_file:
+            if os.path.exists(f"{slurm_log_dir}/run/stderr-{job_id}.log"):
+                with open(f"{slurm_log_dir}/run/stderr-{job_id}.log", "r") as output_file:
                     new_lines = output_file.readlines()
                     output_lines.extend(new_lines)
                     for line in new_lines:
