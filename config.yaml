@@ -1,0 +1,31 @@
+cookie:
+  expiry_days: 30
+  key: "bASNMNCJIb%S!8Fzr_Go4bxo~C-|g" # Must be a string
+  name: af3_cookie
+credentials:
+  usernames:
+    alphafold3user:
+      email: jdoe@gmail.com
+      failed_login_attempts: 0 # Will be managed automatically
+      first_name: LIV
+      last_name: user
+      logged_in: False # Will be managed automatically
+      password: '$2b$12$7Buoad3HZ50mRwx6KxkGBuyNUJQDmg7OfuROEXkEMD9ZzKFBJdhgy'
+#      roles: # Optional
+#      - admin
+#      - editor
+#      - viewer
+
+#oauth2: # Optional
+#  google: # Follow instructions: https://developers.google.com/identity/protocols/oauth2
+#    client_id: # To be filled
+#    client_secret: # To be filled
+#    redirect_uri: # URL to redirect to after OAuth2 authentication
+#  microsoft: # Follow instructions: https://learn.microsoft.com/en-us/graph/auth-register-app-v2
+#    client_id: # To be filled
+#    client_secret: # To be filled
+#    redirect_uri: # URL to redirect to after OAuth2 authentication
+#    tenant_id: # To be filled
+#pre-authorized: # Optional
+#  emails:
+#  - melsby@gmail.com
