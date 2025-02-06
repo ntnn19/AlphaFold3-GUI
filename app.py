@@ -325,15 +325,19 @@ def main():
             job_dir = create_job_dir()
             af_input_path_name = "af_input"
             af_output_path_name = "af_output"
-            af_input_path_dir = os.path.join(job_dir, af_input_path_name)
-            af_output_path_dir = os.path.join(job_dir, af_output_path_name)
+            af_input_path = os.path.join(job_dir, af_input_path_name)
+            af_output_path = os.path.join(job_dir, af_output_path_name)
+#            af_input_path_dir = os.path.join(job_dir, af_input_path_name)
+#            af_output_path_dir = os.path.join(job_dir, af_output_path_name)
     #        os.makedirs(af_output_path_dir, exist_ok=True)
-            af_input_path = st.text_input("AF Input Path", value=af_input_path_dir, help="Path to AlphaFold input directory.")
-            af_output_path = st.text_input("AF Output Path", value=af_output_path_dir, help="Path to AlphaFold output directory.")
+#            af_input_path = st.text_input("AF Input Path", value=af_input_path_dir, help="Path to AlphaFold input directory.")
+#            af_output_path = st.text_input("AF Output Path", value=af_output_path_dir, help="Path to AlphaFold output directory.")
             #af_input_path = st.text_input("AF Input Path", value=os.path.expanduser("~/af_input"), help="Path to AlphaFold input directory.")
             #af_output_path = st.text_input("AF Output Path", value=os.path.expanduser("~/af_output"), help="Path to AlphaFold output directory.")
-            model_parameters_dir = st.text_input("Model Parameters Directory", value="/scratch1/common/singularity_containers/alphafold3/weights", help="Path to model parameters directory.")
-            databases_dir = st.text_input("Databases Directory", value="/scratch1/common/databases/af3_db", help="Path to databases directory.")
+#            model_parameters_dir = st.text_input("Model Parameters Directory", value="/scratch1/common/singularity_containers/alphafold3/weights", help="Path to model parameters directory.")
+            model_parameters_dir = "/scratch1/common/singularity_containers/alphafold3/weights"
+ #           databases_dir = st.text_input("Databases Directory", value="/scratch1/common/databases/af3_db", help="Path to databases directory.")
+            databases_dir = "/scratch1/common/databases/af3_db"
     
             logger.debug(f"Execution settings: af_input_path={af_input_path}, af_output_path={af_output_path}, model_parameters_dir={model_parameters_dir}, databases_dir={databases_dir}")
     
