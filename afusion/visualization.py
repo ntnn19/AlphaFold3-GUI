@@ -1,6 +1,6 @@
 # visualization.py
-
 import streamlit as st
+
 from Bio import PDB
 import py3Dmol
 import io
@@ -9,7 +9,11 @@ import numpy as np
 import plotly.express as px
 import pandas as pd
 from loguru import logger
-
+    
+from Bio.PDB import *
+from scipy.spatial import ConvexHull
+from stl import mesh
+import warnings
 # Configure logger
 logger.add("afusion_visualization.log", rotation="1 MB", level="DEBUG")
 
@@ -49,14 +53,51 @@ def read_cif_file_obj(file_obj):
     return structure, content
 
 def extract_pae_from_json_obj(file_obj):
-    data = json.load(file_obj)
-    pae = np.array(data.get("pae", []), dtype=np.float16)  # Use np.float16
-    token_chain_ids = data.get("token_chain_ids", [])
-    return pae, token_chain_ids
+    """Extract PAE data from JSON file object."""
+    try:
+        data = json.load(file_obj)
+        # Check if data is a list (sometimes AF2 outputs PAE in different formats)
+        if isinstance(data, list):
+            pae_data = data[0]  # Take first element if it's a list
+        else:
+            pae_data = data
+            
+        # Get PAE matrix and chain IDs
+        pae = np.array(pae_data.get("predicted_aligned_error", []), dtype=np.float16)
+        token_chain_ids = pae_data.get("max_predicted_aligned_error", [])
+        
+        if len(pae) == 0:  # If PAE not found in first format, try alternate keys
+            pae = np.array(pae_data.get("pae", []), dtype=np.float16)
+            token_chain_ids = pae_data.get("token_chain_ids", [])
+            
+        return pae, token_chain_ids
+    except Exception as e:
+        st.error(f"Error extracting PAE data: {str(e)}")
+        # Return empty data as fallback
+        return np.array([[]], dtype=np.float16), []
 
 def extract_summary_confidences_obj(file_obj):
-    data = json.load(file_obj)
-    return data
+    """Extract summary confidence data from JSON file object."""
+    try:
+        data = json.load(file_obj)
+        # Check if data is a list
+        if isinstance(data, list):
+            summary_data = data[0]  # Take first element if it's a list
+        else:
+            summary_data = data
+            
+        # Convert any numpy arrays to lists for JSON serialization
+        processed_data = {}
+        for key, value in summary_data.items():
+            if isinstance(value, np.ndarray):
+                processed_data[key] = value.tolist()
+            else:
+                processed_data[key] = value
+                
+        return processed_data
+    except Exception as e:
+        st.error(f"Error extracting summary confidence data: {str(e)}")
+        return {}  # Return empty dict as fallback
 
 # ========================================
 # Common functions
@@ -173,44 +214,56 @@ def display_visualization_header():
     st.markdown(color_mapping_html, unsafe_allow_html=True)
 
 def visualize_pae(pae_matrix, token_chain_ids):
+    """Visualize PAE matrix with error handling."""
     st.write("### Predicted Aligned Error (PAE)")
-    fig = px.imshow(
-        pae_matrix,
-        color_continuous_scale='Greens_r',
-        labels=dict(
-            x="Residue index",
-            y="Residue index",
-            color="PAE (Å)"
-        ),
-        zmin=0.0,
-        zmax=31.75
-    )
-    # Draw chain boundaries
-    if token_chain_ids:
-        chain_boundaries = []
-        prev_chain = token_chain_ids[0]
-        for idx, chain_id in enumerate(token_chain_ids):
-            if chain_id != prev_chain:
-                chain_boundaries.append(idx - 0.5)
-                prev_chain = chain_id
-        for boundary in chain_boundaries:
-            fig.add_shape(
-                type="line",
-                x0=boundary,
-                y0=0,
-                x1=boundary,
-                y1=len(token_chain_ids),
-                line=dict(color="red", width=1)
-            )
-            fig.add_shape(
-                type="line",
-                x0=0,
-                y0=boundary,
-                x1=len(token_chain_ids),
-                y1=boundary,
-                line=dict(color="red", width=1)
-            )
-    st.plotly_chart(fig, use_container_width=True)
+    
+    if len(pae_matrix) == 0:
+        st.warning("No PAE data available")
+        return
+        
+    try:
+        fig = px.imshow(
+            pae_matrix,
+            color_continuous_scale='Greens_r',
+            labels=dict(
+                x="Residue index",
+                y="Residue index",
+                color="PAE (Å)"
+            ),
+            zmin=0.0,
+            zmax=31.75
+        )
+        
+        # Draw chain boundaries if available
+        if token_chain_ids:
+            chain_boundaries = []
+            prev_chain = token_chain_ids[0]
+            for idx, chain_id in enumerate(token_chain_ids):
+                if chain_id != prev_chain:
+                    chain_boundaries.append(idx - 0.5)
+                    prev_chain = chain_id
+            
+            for boundary in chain_boundaries:
+                fig.add_shape(
+                    type="line",
+                    x0=boundary,
+                    y0=0,
+                    x1=boundary,
+                    y1=len(token_chain_ids),
+                    line=dict(color="red", width=1)
+                )
+                fig.add_shape(
+                    type="line",
+                    x0=0,
+                    y0=boundary,
+                    x1=len(token_chain_ids),
+                    y1=boundary,
+                    line=dict(color="red", width=1)
+                )
+                
+        st.plotly_chart(fig, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error visualizing PAE matrix: {str(e)}")
 
 def display_summary_data(summary_data, chain_ids):
     st.write("### Summary of Confidence Metrics")
@@ -285,6 +338,606 @@ def display_summary_data(summary_data, chain_ids):
         st.table(df_style)
         st.markdown("</div>", unsafe_allow_html=True)
 
+
+
+def extract_sequence(structure):
+    """Extract amino acid sequence from structure."""
+    aa_dict = {
+        'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C',
+        'GLN': 'Q', 'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I',
+        'LEU': 'L', 'LYS': 'K', 'MET': 'M', 'PHE': 'F', 'PRO': 'P',
+        'SER': 'S', 'THR': 'T', 'TRP': 'W', 'TYR': 'Y', 'VAL': 'V'
+    }
+    
+    sequence = {}
+    try:
+        # Get first model if it's a structure object
+        if isinstance(structure, PDB.Structure.Structure):
+            models = structure.get_list()
+            if models:
+                structure = models[0]
+        
+        # Extract sequence for each chain
+        for chain in structure.get_chains():
+            chain_seq = ""
+            for residue in chain:
+                if residue.id[0] == " ":  # Only standard amino acids
+                    resname = residue.get_resname()
+                    if resname in aa_dict:
+                        chain_seq += aa_dict[resname]
+            if chain_seq:  # Only add chains that have a sequence
+                sequence[chain.id] = chain_seq
+    except Exception as e:
+        st.error(f"Error extracting sequence: {str(e)}")
+        return {"A": ""}  # Return dummy sequence if extraction fails
+    
+    return sequence
+
+def format_sequence(sequence, width=80):
+    """Format sequence with line numbers and fixed width."""
+    lines = []
+    for i in range(0, len(sequence), width):
+        chunk = sequence[i:i + width]
+        line_num = str(i + 1).rjust(5)
+        lines.append(f"{line_num} {chunk}")
+    return '\n'.join(lines)
+
+def add_visualization_controls(structure):
+    """Add visualization controls to the sidebar."""
+    st.sidebar.markdown("### Visualization Controls")
+    
+    # Style selection
+    style = st.sidebar.selectbox(
+        "Select Style",
+        ["cartoon", "stick", "line", "sphere"],
+        help="Choose the visualization style for the protein structure"
+    )
+    
+    # Color scheme selection
+    color_scheme = st.sidebar.selectbox(
+        "Color Scheme",
+        ["confidence", "chain", "secondary", "rainbow", "custom"],
+        help="Choose how to color the structure"
+    )
+    
+    # Custom color if selected
+    custom_color = None
+    if color_scheme == "custom":
+        custom_color = st.sidebar.color_picker("Choose custom color", "#00FF00")
+    
+    # Extract and display sequence
+    try:
+        sequences = extract_sequence(structure)
+        if not sequences:
+            st.sidebar.warning("No sequence information available")
+            return {
+                'style': style,
+                'color_scheme': color_scheme,
+                'custom_color': custom_color,
+                'selected_residues': None,
+                'selection_color': "#FF0000"
+            }
+        
+        # Sequence selection controls
+        st.sidebar.markdown("### Sequence Selection")
+        
+        # Chain selection
+        selected_chain = st.sidebar.selectbox(
+            "Select Chain",
+            list(sequences.keys()),
+            help="Choose which chain to select residues from"
+        )
+        
+        # Display selected chain sequence
+        st.sidebar.markdown("#### Chain Sequence")
+        formatted_seq = format_sequence(sequences[selected_chain])
+        st.sidebar.code(formatted_seq)
+        
+        # Residue selection
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            start_res = st.number_input("Start Residue", 1, len(sequences[selected_chain]), 1)
+        with col2:
+            end_res = st.number_input("End Residue", start_res, len(sequences[selected_chain]), 
+                                     min(start_res + 10, len(sequences[selected_chain])))
+        
+        # Selection color
+        selection_color = st.sidebar.color_picker("Selection Color", "#FF0000")
+        
+        selected_residues = None
+        if st.sidebar.button("Highlight Selection"):
+            selected_residues = {
+                selected_chain: list(range(start_res, end_res + 1))
+            }
+            
+        return {
+            'style': style,
+            'color_scheme': color_scheme,
+            'custom_color': custom_color,
+            'selected_residues': selected_residues,
+            'selection_color': selection_color
+        }
+        
+    except Exception as e:
+        st.sidebar.error(f"Error setting up visualization controls: {str(e)}")
+        return {
+            'style': style,
+            'color_scheme': color_scheme,
+            'custom_color': custom_color,
+            'selected_residues': None,
+            'selection_color': "#FF0000"
+        }
+def visualize_structure(residue_bfactors, ligands, cif_content, 
+                       style="cartoon", color_scheme="confidence", 
+                       custom_color=None, selected_residues=None, 
+                       selection_color="#FF0000", background_color='#000000'):
+    """Enhanced structure visualization with multiple styles and coloring options."""
+    view = py3Dmol.view(width='100%', height=600)
+    view.addModel(cif_content, 'cif')
+    
+    # Set base style
+    style_settings = {}
+    if style == "cartoon":
+        style_settings = {"cartoon": {}}
+    elif style == "stick":
+        style_settings = {"stick": {}}
+    elif style == "line":
+        style_settings = {"line": {}}
+    elif style == "sphere":
+        style_settings = {"sphere": {}}
+    
+    # Apply base style
+    view.setStyle({'model': -1}, style_settings)
+    
+    # Apply coloring based on scheme
+    style_key = list(style_settings.keys())[0]  # Get the current style type
+    
+    if color_scheme == "confidence":
+        # Use existing B-factor based coloring
+        for (chain_id, resseq), info in residue_bfactors.items():
+            avg_bfactor = info['avg_bfactor']
+            color = get_color_from_bfactor(avg_bfactor)
+            selection = {'chain': chain_id, 'resi': resseq}
+            view.addStyle(selection, {style_key: {'color': color}})
+    
+    elif color_scheme == "chain":
+        # Color by chain
+        colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff']
+        chains = set(chain_id for (chain_id, _) in residue_bfactors.keys())
+        for i, chain in enumerate(chains):
+            color = colors[i % len(colors)]
+            view.addStyle({'chain': chain}, {style_key: {'color': color}})
+    
+    elif color_scheme == "secondary":
+        # Color by secondary structure
+        view.addStyle({'ss': 'h'}, {style_key: {'color': '#FF0000'}})  # helices
+        view.addStyle({'ss': 's'}, {style_key: {'color': '#FFFF00'}})  # sheets
+        view.addStyle({'ss': 'l'}, {style_key: {'color': '#00FF00'}})  # loops
+    
+    elif color_scheme == "rainbow":
+        view.setStyle({}, {style_key: {'color': 'spectrum'}})
+    
+    elif color_scheme == "custom" and custom_color:
+        view.setStyle({}, {style_key: {'color': custom_color}})
+    
+    # Highlight selected residues if any
+    if selected_residues:
+        for chain_id, residues in selected_residues.items():
+            view.addStyle(
+                {'chain': chain_id, 'resi': residues},
+                {style_key: {'color': selection_color}}
+            )
+    
+    # Add ligands
+    for ligand in ligands:
+        selection = {
+            'chain': ligand['chain_id'],
+            'resi': ligand['resseq'],
+            'atom': ligand['atom_name']
+        }
+        view.addStyle(selection, {'stick': {'color': get_color_from_bfactor(ligand['bfactor'])}})
+    
+    # Set background color and view options
+    view.setBackgroundColor(background_color)
+    view.zoomTo()
+    
+    return view._make_html()
+
+def add_export_controls():
+    """Add export controls to the sidebar."""
+    st.sidebar.markdown("### Export 3D Model")
+    export_format = st.sidebar.selectbox(
+        "Export Format",
+        ["GLTF/GLB (3D Web)", "VRML (WRL)", "STL", "OBJ"],
+        help="Choose format to export the 3D model"
+    )
+    return export_format
+
+def export_structure(structure, format_type="pdb"):
+    """
+    Export structure in various formats with proper error handling and data conversion.
+    
+    Args:
+        structure: Bio.PDB Structure object
+        format_type: str, one of ["pdb", "mmcif", "stl"]
+        
+    Returns:
+        tuple: (binary_data, filename, mime_type) or (None, None, None) on error
+    """
+    try:
+        import io
+        from Bio.PDB import PDBIO, MMCIFWriter
+        
+        # Create in-memory buffer
+        buffer = io.StringIO()
+        
+        if format_type == "pdb":
+            # Export as PDB
+            io_handler = PDBIO()
+            io_handler.set_structure(structure)
+            io_handler.save(buffer)
+            return (buffer.getvalue().encode('utf-8'), 
+                   "structure.pdb", 
+                   "chemical/x-pdb")
+                   
+        elif format_type == "mmcif":
+            # Export as mmCIF
+            writer = MMCIFWriter()
+            writer.save(structure, buffer)
+            return (buffer.getvalue().encode('utf-8'),
+                   "structure.cif",
+                   "chemical/x-cif")
+                   
+        elif format_type == "stl":
+            try:
+                import numpy as np
+                from stl import mesh
+                
+                # Get atom coordinates
+                atoms = []
+                for model in structure:
+                    for chain in model:
+                        for residue in chain:
+                            for atom in residue:
+                                atoms.append(atom.get_coord())
+                
+                if not atoms:
+                    raise ValueError("No atoms found in structure")
+                
+                # Convert to numpy array
+                points = np.array(atoms)
+                
+                # Create mesh using convex hull
+                from scipy.spatial import ConvexHull
+                hull = ConvexHull(points)
+                
+                # Create faces from convex hull
+                vertices = points[hull.vertices]
+                faces = []
+                for simplex in hull.simplices:
+                    faces.append([simplex[0], simplex[1], simplex[2]])
+                
+                # Create STL mesh
+                stl_mesh = mesh.Mesh(np.zeros(len(faces), dtype=mesh.Mesh.dtype))
+                for i, face in enumerate(faces):
+                    for j in range(3):
+                        stl_mesh.vectors[i][j] = vertices[face[j]]
+                
+                # Save to binary buffer
+                buffer = io.BytesIO()
+                stl_mesh.save(buffer, mode=mesh.Mode.BINARY)
+                
+                return (buffer.getvalue(),
+                       "structure.stl",
+                       "model/stl")
+                       
+            except ImportError:
+                print("Required packages for STL export not found. Install numpy-stl and scipy.")
+                return None, None, None
+            except Exception as e:
+                print(f"Error creating STL mesh: {str(e)}")
+                return None, None, None
+                
+        else:
+            raise ValueError(f"Unsupported format: {format_type}")
+            
+    except Exception as e:
+        print(f"Error exporting structure: {str(e)}")
+        return None, None, None
+    
+def export_to_3d_formats(cif_content):
+    """Export structure to PDB format."""
+    try:
+        # Create a temporary file to store the CIF content
+        with open("temp.cif", "w") as f:
+            f.write(cif_content)
+        
+        # Use Bio.PDB to read and convert the structure
+        parser = PDB.MMCIFParser()
+        structure = parser.get_structure("protein", "temp.cif")
+        
+        # Write as PDB
+        io = PDB.PDBIO()
+        io.set_structure(structure)
+        io.save("temp.pdb")
+        
+        # Read the converted PDB file
+        with open("temp.pdb", "r") as f:
+            pdb_data = f.read()
+            
+        # Clean up temporary files
+        import os
+        os.remove("temp.cif")
+        os.remove("temp.pdb")
+        
+        return pdb_data.encode('utf-8')  # Return as bytes
+        
+    except Exception as e:
+        st.error(f"Error converting to PDB format: {str(e)}")
+        return None
+
+def export_for_cad(cif_content):
+    """Export structure for CAD software."""
+    try:
+        # Create a temporary file to store the CIF content
+        with open("temp.cif", "w") as f:
+            f.write(cif_content)
+        
+        # Use Bio.PDB to read the structure
+        parser = PDB.MMCIFParser()
+        structure = parser.get_structure("protein", "temp.cif")
+        
+        # Write as STL using Bio.PDB
+        # Note: This is a simplified surface representation
+        io = PDB.PDBIO()
+        io.set_structure(structure)
+        io.save("temp.stl")
+        
+        # Read the STL file as binary
+        with open("temp.stl", "rb") as f:
+            stl_data = f.read()
+            
+        # Clean up temporary files
+        import os
+        os.remove("temp.cif")
+        os.remove("temp.stl")
+        
+        return stl_data
+        
+    except Exception as e:
+        st.error(f"Error converting to STL format: {str(e)}")
+        return None
+    
+def convert_to_stl(structure, style="cartoon"):
+    """Convert structure to STL format with proper binary data handling.
+    
+    Args:
+        structure: Bio.PDB Structure object
+        style: String indicating visualization style ("cartoon" or "surface")
+        
+    Returns:
+        bytes: Binary STL data
+    """
+    try:
+        import numpy as np
+        from Bio.PDB import PDBIO
+        import io
+        
+        # First try mesh-based approach (more reliable)
+        try:
+            from stl import mesh
+            from scipy.spatial import ConvexHull
+            
+            # Get atom coordinates
+            atoms = []
+            for model in structure:
+                for chain in model:
+                    for residue in chain:
+                        for atom in residue:
+                            atoms.append(atom.get_coord())
+            
+            if not atoms:
+                raise ValueError("No atoms found in structure")
+            
+            # Convert to numpy array
+            points = np.array(atoms)
+            
+            # Create a surface mesh using convex hull
+            hull = ConvexHull(points)
+            
+            # Create mesh from convex hull
+            vertices = points[hull.vertices]
+            faces = []
+            for simplex in hull.simplices:
+                faces.append([simplex[0], simplex[1], simplex[2]])
+            
+            # Create STL mesh
+            stl_mesh = mesh.Mesh(np.zeros(len(faces), dtype=mesh.Mesh.dtype))
+            for i, face in enumerate(faces):
+                for j in range(3):
+                    stl_mesh.vectors[i][j] = vertices[face[j]]
+            
+            # Save to binary buffer
+            buffer = io.BytesIO()
+            stl_mesh.save(buffer, mode=mesh.Mode.BINARY)
+            return buffer.getvalue()
+            
+        except ImportError:
+            # If numpy-stl is not available, try py3Dmol
+            import py3Dmol
+            
+            # Save structure as PDB first
+            pdb_buffer = io.StringIO()
+            pdb_io = PDBIO()
+            pdb_io.set_structure(structure)
+            pdb_io.save(pdb_buffer)
+            
+            # Create py3Dmol view
+            view = py3Dmol.view(width=800, height=600)
+            view.addModel(pdb_buffer.getvalue(), "pdb")
+            
+            # Set style
+            if style == "cartoon":
+                view.setStyle({'': {'cartoon': {'color': 'spectrum'}}})
+            else:  # surface
+                view.setStyle({'': {'surface': {'opacity': 0.8}}})
+            
+            # Get binary STL data
+            stl_data = view.zoomTo()._convert_to_binary('stl')
+            if not isinstance(stl_data, bytes):
+                raise ValueError("Failed to get binary STL data from py3Dmol")
+                
+            return stl_data
+            
+    except Exception as e:
+        print(f"Error converting to STL: {str(e)}")
+        return None
+    
+
+
+def create_protein_mesh(structure, style="surface", resolution=2.0):
+    """Creates a detailed 3D mesh of a protein structure suitable for CAD software."""
+    try:
+        import numpy as np
+        from scipy.spatial import ConvexHull
+        from stl import mesh
+        import io
+
+        # Get atom coordinates and radii
+        atoms = []
+        atom_radii = []
+        
+        # Van der Waals radii for common atoms (in Angstroms)
+        vdw_radii = {
+            'C': 1.70, 'N': 1.55, 'O': 1.52, 'S': 1.80,
+            'P': 1.80, 'H': 1.20, 'F': 1.47, 'Cl': 1.75
+        }
+
+        # Collect atoms based on style
+        for model in structure:
+            for chain in model:
+                for residue in chain:
+                    for atom in residue:
+                        if style == "cartoon" and atom.get_name() not in ['CA', 'C', 'N', 'O']:
+                            continue
+                        if atom.element != 'H':  # Skip hydrogens
+                            atoms.append(atom.get_coord())
+                            atom_radii.append(vdw_radii.get(atom.element, 1.70))
+
+        if not atoms:
+            raise ValueError("No atoms found in structure")
+
+        points = np.array(atoms)
+        radii = np.array(atom_radii)
+
+        # Generate surface points
+        surface_points = []
+        phi = np.linspace(0, 2*np.pi, int(20/resolution))
+        theta = np.linspace(0, np.pi, int(10/resolution))
+        phi, theta = np.meshgrid(phi, theta)
+        
+        x = np.sin(theta) * np.cos(phi)
+        y = np.sin(theta) * np.sin(phi)
+        z = np.cos(theta)
+        sphere_points = np.vstack((x.flatten(), y.flatten(), z.flatten())).T
+
+        # Create surface for each atom
+        for coord, radius in zip(points, radii):
+            atom_surface = sphere_points * radius + coord
+            surface_points.extend(atom_surface)
+
+        surface_points = np.array(surface_points)
+        hull = ConvexHull(surface_points)
+        
+        # Create mesh
+        faces = hull.simplices
+        vertices = surface_points[hull.vertices]
+        
+        # Generate STL mesh
+        stl_mesh = mesh.Mesh(np.zeros(len(faces), dtype=mesh.Mesh.dtype))
+        for i, face in enumerate(faces):
+            for j in range(3):
+                stl_mesh.vectors[i][j] = vertices[face[j]]
+
+        # Save to binary buffer
+        buffer = io.BytesIO()
+        stl_mesh.save(buffer, mode=mesh.Mode.BINARY)
+        return buffer.getvalue()
+
+    except Exception as e:
+        print(f"Error creating protein mesh: {str(e)}")
+        return None
+
+
+def export_protein_for_cad(structure):
+    """
+    Creates UI elements for CAD export with different options.
+    
+    Args:
+        structure: Bio.PDB Structure object
+    Returns:
+        tuple: (success, UI_elements)
+    """
+    import streamlit as st
+    
+    st.write("### Export for CAD/3D Printing")
+    
+    # Export options
+    model_type = st.selectbox(
+        "Model Type",
+        ["Surface (All Atoms)", "Backbone Only"],
+        help="Choose what parts of the protein to include in the 3D model"
+    )
+    
+    resolution = st.slider(
+        "Resolution",
+        min_value=1.0,
+        max_value=5.0,
+        value=2.0,
+        step=0.5,
+        help="Higher resolution means more detail but larger file size"
+    )
+    
+    if st.button("Generate 3D Model"):
+        with st.spinner("Generating 3D model... This may take a moment."):
+            mode = "backbone" if model_type == "Backbone Only" else "surface"
+            stl_data = create_protein_mesh(structure, mode=mode, resolution=resolution)
+            
+            if stl_data:
+                st.success("3D model generated successfully!")
+                st.download_button(
+                    "Download STL File",
+                    data=stl_data,
+                    file_name="protein_model.stl",
+                    mime="model/stl",
+                    help="Download for use in CAD software or 3D printing"
+                )
+                
+                st.info("""
+                ℹ️ This STL file can be opened in:
+                - CAD software (Fusion 360, SolidWorks, AutoCAD)
+                - 3D printing slicers (Cura, PrusaSlicer)
+                - 3D modeling tools (Blender, Maya)
+                
+                Tips for best results:
+                - Import at 1:1 scale
+                - Units are in Angstroms (Å)
+                - You may need to scale the model in your CAD software
+                - For 3D printing, consider supports for overhanging regions
+                """)
+                return True
+            else:
+                st.error("""
+                Failed to generate 3D model. Try:
+                - Reducing the resolution
+                - Using backbone-only mode
+                - Checking if the structure has valid coordinates
+                """)
+                return False
+                
+    return False
+
+
 # ========================================
 # Main Application
 # ========================================
@@ -301,23 +954,19 @@ def main():
     # Custom CSS styles
     st.markdown("""
         <style>
-        /* Remove padding */
         .css-18e3th9 {
             padding-top: 0rem;
             padding-bottom: 0rem;
             padding-left: 1rem;
             padding-right: 1rem;
         }
-        /* Header styling */
         .css-10trblm {
             font-size: 2rem;
             color: #2c3e50;
         }
-        /* Sidebar styling */
         .css-1d391kg {
             background-color: #f2f4f5;
         }
-        /* Button styling */
         .stButton>button {
             background-color: #2c3e50;
             color: white;
@@ -370,7 +1019,10 @@ def main():
 
             # Get chain ID list
             chain_ids = list(set(token_chain_ids))
-            chain_ids.sort()  # Sort for consistency
+            chain_ids.sort()
+
+            # Add visualization controls
+            viz_params = add_visualization_controls(structure)
 
             # Display visualization results
             st.markdown('<div id="visualization"></div>', unsafe_allow_html=True)
@@ -383,8 +1035,95 @@ def main():
             with col1:
                 st.write("### 3D Model Visualization")
                 if residue_bfactors or ligands:
-                    view_html = visualize_structure(residue_bfactors, ligands, cif_content, background_color='#000000')
+                    view_html = visualize_structure(
+                        residue_bfactors, 
+                        ligands, 
+                        cif_content,
+                        style=viz_params['style'],
+                        color_scheme=viz_params['color_scheme'],
+                        custom_color=viz_params['custom_color'],
+                        selected_residues=viz_params['selected_residues'],
+                        selection_color=viz_params['selection_color'],
+                        background_color='#000000'
+                    )
                     st.components.v1.html(view_html, height=600, scrolling=False)
+                    
+                    # Download section
+                    st.write("### Download 3D Model")
+                    
+                    # Create download buttons
+                    download_col1, download_col2, download_col3 = st.columns(3)
+                    
+                    # CIF Download
+                    with download_col1:
+                        st.download_button(
+                            "Download as CIF",
+                            data=cif_content.encode('utf-8'),
+                            file_name="protein_model.cif",
+                            mime="chemical/x-cif",
+                            help="Download structure in CIF format"
+                        )
+                    
+                    # PDB Download
+                    with download_col2:
+                        pdb_data = export_to_3d_formats(cif_content)
+                        if pdb_data:
+                            st.download_button(
+                                "Download as PDB",
+                                data=pdb_data,
+                                file_name="protein_model.pdb",
+                                mime="chemical/x-pdb",
+                                help="Download structure in PDB format"
+                            )
+                    
+                    # STL/CAD Download
+                    with download_col3:
+                        st.write("Export for 3D Printing/CAD")
+                        
+                        # Export options
+                        style = st.selectbox(
+                            "Export Style",
+                            ["surface", "cartoon"],
+                            help="Choose representation style for 3D export"
+                        )
+                        
+                        resolution = st.slider(
+                            "Resolution",
+                            min_value=1.0,
+                            max_value=5.0,
+                            value=2.0,
+                            step=0.5,
+                            help="Higher resolution = more detail but larger file size"
+                        )
+                        
+                        # Generate STL
+                        stl_data = create_protein_mesh(structure, style=style, resolution=resolution)
+                        
+                        if stl_data:
+                            st.download_button(
+                                "Download for CAD (STL)",
+                                data=stl_data,
+                                file_name="protein_structure.stl",
+                                mime="model/stl",
+                                help="Download as STL file for CAD software"
+                            )
+                            
+                            st.info("""
+                            💡 STL file can be used in:
+                            - CAD software (Fusion 360, SolidWorks)
+                            - 3D printing slicers
+                            - 3D modeling tools
+                            
+                            Note: Model is in Angstroms (Å)
+                            """)
+                        else:
+                            st.error("""
+                            Unable to generate STL file. 
+                            Try:
+                            - Reducing resolution
+                            - Using different style
+                            - Using PDB format instead
+                            """)
                 else:
                     st.error("Failed to extract atom data.")
                     logger.error("Failed to extract atom data.")

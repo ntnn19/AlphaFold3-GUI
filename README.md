@@ -28,7 +28,7 @@
 ![image](https://github.com/user-attachments/assets/d1d894c7-c0cc-4218-9677-1917c1ad7b88)
 
 <p align="center">
-    Transform your protein structure prediction workflow with AFusion - a sleek, intuitive graphical interface that makes AlphaFold3 accessible to everyone. No more command-line hassles - just point, click, and predict..
+    Transform your protein structure prediction workflow with AFusion - a sleek, intuitive graphical interface that makes AlphaFold3 accessible to everyone. No more command-line hassles - just point, click, and predict.
 </p>
 
 **[Demo site](https://af3gui.streamlit.app/)** *(generate input JSON files ONLY)*
@@ -43,6 +43,7 @@
 - [Usage](#usage)
   - [Launching AFusion](#launching-afusion)
   - [Using the GUI](#using-the-gui)
+  - [Enhanced Visualization Features](#enhanced-visualization-features)
 - [Documentation](#documentation)
 - [ToDo](#todo)
 - [Screenshots](#screenshots)
@@ -65,8 +66,14 @@
 - **🖥️ Live Monitoring**: Real-time process tracking and console output
 - **🧩 Batch Processing**: Python API for automated predictions
 
-### **🌟 New Feature!**
+### **🌟 New Features!**
 - **AlphaFold 3 Output Analysis System**: Automatically analyze and visualize results with customizable visualizations and generate detailed PDF reports for streamlined insights.
+- **Enhanced Visualization Features** (New in this fork):
+  - Multiple visualization styles (cartoon, stick, line, sphere)
+  - Flexible coloring schemes (confidence, chain, secondary structure, rainbow)
+  - Interactive residue selection and chain sequence viewer
+  - Advanced export capabilities for scientific and 3D printing formats
+  - Improved PAE matrix visualization and confidence metrics display
 
 ## Prerequisites
 
@@ -109,8 +116,6 @@ Before using AFusion, ensure that you have the following:
 - **⚙️ Docker Configuration**: After installing Docker, make sure it is running properly and that your user has permission to execute Docker commands.
 
 - **📦 Streamlit is Included in Dependencies**: AFusion's installation will automatically install all required dependencies, including Streamlit. There's no need to install it separately.
-
-If you encounter any issues during installation or usage, please refer to the relevant official documentation or contact us for support.
 
 ## Usage
 
@@ -186,25 +191,6 @@ If you encounter any issues during installation or usage, please refer to the re
   - **🔧 Docker Command**: The exact Docker command used is displayed for your reference.
   - **📊 Command Output**: Execution output is displayed within the app for monitoring.
 
-### Visualization Module 🎨📊
-
-1. **🚀 Launch Visualization Interface**
-
-   To start the visualization module, run:
-
-   ```bash
-   afusion visualization
-   ```
-
-2. **📂 Upload and Analyze Results**
-
-   - **📤 Upload Files**: Upload AlphaFold 3 output files (e.g., `.cif`, `.json`) directly in the visualization interface.
-   - **🔬 Visual Analysis**: Perform visual analysis for each prediction, with detailed structure displays and customizable plots.
-   - **📄 Web Reports**: Generate web reports like Alphafold3 Server for the analysis on demand.
-
-3. **🔗 Integrated with Prediction GUI**
-
-   - **🎛️ Seamless Integration**: The visualization tools are also integrated into the prediction GUI. Once predictions are complete, you can switch seamlessly to the visualization tab for analysis.
 
 ## Documentation
 - Full Documentation in [here](https://alphafold3-gui.readthedocs.io)
@@ -220,25 +206,16 @@ If you encounter any issues during installation or usage, please refer to the re
 - [X] ~~🖥️ **Add Console Output**: Implement a backend console for output to track processes and debug more effectively.~~
 - [X] ~~🧩 **Create API for Batch Predictions**: Develop a standalone function API to allow users to perform batch predictions with afusion in Python scripts.~~
 - [X] ~~**🧭 Create Guided Installation GUI**: To simplify the installation process.~~
+- [X] ~~**🎨 Enhanced Visualization Features**: Implement advanced visualization capabilities with multiple styles and export options.~~
 
-# Screenshots
-
-### Prediction GUI Interface
-<details>
-  <summary>Click to view screenshot</summary>
-  
-  ![image](https://github.com/user-attachments/assets/fbeef0c7-b913-4b4a-bd92-4bfe86f12383)
-  ---
-  #### Visualization Module
-  ![5d669cae7b5ff498e456719cfc1fa7ef](https://github.com/user-attachments/assets/c15f7c3a-a8fc-4120-9b9c-dd4fd5bf3697)
-</details>
+## Screenshots
 
 ### Visualization GUI Interface
 
 <details>
   <summary>Click to view screenshot</summary>
   
-  ![ba57fe831626ca0184510abd2069a4aa](https://github.com/user-attachments/assets/269cc9be-9145-481f-a819-e5af2bf59788)
+  <img width="1165" alt="image" src="https://github.com/user-attachments/assets/1480db8e-5a11-43ad-8c46-b54dbe333f66" />
 
 </details>
 
@@ -256,19 +233,22 @@ If you encounter any issues during installation or usage, please refer to the re
   ![image](https://github.com/user-attachments/assets/66bb3789-c2d5-4be2-894b-a779136e8d83)
 </details>
 
+
 ## License
 
 This project is licensed under the GPL3 License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgements
 
-- **AlphaFold 3**: This GUI is designed to work with [AlphaFold 3](https://github.com/google-deepmind/alphafold3) by DeepMind.
-- **Streamlit**: AFusion is built using [Streamlit](https://streamlit.io/), an open-source app framework for machine learning and data science teams.
-- **Contributors**: Waiting for more!
+- **Original Project**: Created by [Hanziwww](https://github.com/Hanziwww)
+- **Visualization Enhancements**: This fork includes additional visualization features while maintaining the core functionality of the original project
+- **Enhanced Version**: Maintained by [Shivp1413](https://github.com/Shivp1413)
+- **AlphaFold 3**: This GUI is designed to work with [AlphaFold 3](https://github.com/google-deepmind/alphafold3) by DeepMind
+- **Streamlit**: AFusion is built using [Streamlit](https://streamlit.io/)
+- **Contributors**: Thanks to all contributors to the original project!
 
 ---
 
 If you encounter any issues or have suggestions for improvements, please open an [issue](https://github.com/Hanziwww/AlphaFold3-GUI/issues) or submit a [pull request](https://github.com/Hanziwww/AlphaFold3-GUI/pulls).
 
 Happy Folding! 🧬
-
