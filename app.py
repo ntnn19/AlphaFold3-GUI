@@ -516,7 +516,8 @@ def main(model_parameters_dir,databases_dir,path_to_store_job_dir):
                 st.info("Click the 'Run AlphaFold 3 Now ▶️' button to execute the command.")
 
         if scale_flg == "Multiple predictions":
-            job_dir = create_job_dir(path_to_store_job_dir)
+
+            job_dir = os.path.abspath(create_job_dir(path_to_store_job_dir))
             CONFIG_DIR = os.path.join(job_dir, "config")
             PROFILE_DIR = os.path.join(job_dir, "profile")
             CONFIG_PATH = os.path.join(CONFIG_DIR, "config.yaml")
