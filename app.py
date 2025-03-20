@@ -590,7 +590,7 @@ def main(model_parameters_dir,databases_dir,path_to_store_job_dir):
                 }
             if executor == "local" or executor == "dryrun":
                 profile_data = {
-                    'executor': "local",
+                    'executor': executor,
                 }
             # Convert to YAML format
             config_yaml = yaml.dump(config_data, default_flow_style=False)
