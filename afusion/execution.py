@@ -5,6 +5,34 @@ import os
 import time
 from loguru import logger
 
+
+def run_snakemake(command, job_dir, placeholder):
+    # Make sure job_dir is an absolute path
+    job_dir = os.path.abspath(job_dir)
+
+    # Ensure the job directory exists
+    if not os.path.exists(job_dir):
+        os.makedirs(job_dir)
+
+    # Run the Snakemake command and capture output in the specified job_dir
+    process = subprocess.Popen(command, shell=True, cwd=job_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # Poll the process and update the output placeholder with the stdout
+    while True:
+        output = process.stdout.readline()
+        if output == b'' and process.poll() is not None:
+            break
+        if output:
+            placeholder.text(output.decode())
+
+    # Get stderr if any error occurs
+    stderr_output = process.stderr.read().decode()
+    if stderr_output:
+        placeholder.text(f"Error: {stderr_output}")
+
+    return process.returncode
+
+
 def run_alphafold(command, slurm_log_dir, placeholder=None, slurm_time="48:00:00"):
     """
     Runs the AlphaFold command via Slurm and captures output.

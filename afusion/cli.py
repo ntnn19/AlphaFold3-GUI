@@ -23,8 +23,12 @@ def main():
     # 'run' sub-command
     run_parser = subparsers.add_parser(
         'run', 
-        help='Run the main application (Alphafold3 GUI)'
+        help='Run the main application (Alphafold3 GUI): afusion run model_parameters_dir databases_dir path_to_store_job_dir'
     )
+
+    run_parser.add_argument("model_parameters_dir", type=str, help="path to a directory that stores the model parameters")
+    run_parser.add_argument("databases_dir", type=str, help="path to a directory that stores af3 databases")
+    run_parser.add_argument("path_to_store_job_dir", type=str, help="path to store job-specific directories")
 
     # 'visualization' sub-command
     visualization_parser = subparsers.add_parser(
@@ -68,6 +72,7 @@ def main():
             'streamlit', 'run', app_path,
             '--server.fileWatcherType=none'
         ] + sys.argv[2:]  # Skip the first two arguments ('afusion', 'run')
+        print("streamlit_command=", streamlit_command)
         os.execvp('streamlit', streamlit_command)
 
     elif args.command == 'visualization':
