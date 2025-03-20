@@ -574,6 +574,12 @@ def main(model_parameters_dir,databases_dir,path_to_store_job_dir):
                         'slurm_account': slurm_account
                     },
                     'set-resources': {
+                        'PREPROCESSING': {
+                            'slurm_partition': af3_data_pipeline_partition,
+                            'nodes': 1,
+                            'runtime': 10000,
+                            'mem_mb': int(af3_data_pipeline_ram)
+                        },
                         'AF3_DATA_PIPELINE': {
                             'slurm_partition': af3_data_pipeline_partition,
                             'nodes': 1,
