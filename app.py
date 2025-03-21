@@ -553,13 +553,9 @@ def main():
             databases_dir = st.text_input("Enter an absolute path to AlphaFold 3 databases")
             singularity_tmp_dir = st.text_input("Enter an absolute path to singularity temporary directory (optional)")
             singularity_cache_dir = st.text_input("Enter an absolute path to singularity cache directory (optional)")
-            if bool(singularity_tmp_dir) ^ bool(singularity_cache_dir):
-                st.warning("Specify both or leave both empty.")
-
-
-
             mode = st.radio("Mode:", ["all-vs-all", "pulldown", "virtual-drug-screen", "custom"], index=None)
             af3_version = st.radio("AlphaFold 3 version:", ["40gb", "80gb", "custom"])
+
             if af3_version == "40gb":
                 af3_container = "docker://ntnn19/alphafold3:latest_parallel_a100_40gb"
             if af3_version == "80gb":
