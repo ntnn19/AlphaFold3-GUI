@@ -39,7 +39,6 @@ from afusion.visualization import (
     visualize_pae,
     display_summary_data
 )
-import click
 # Configure the logger
 os.makedirs("log", exist_ok=True)
 logger.add("log/afusion.log", rotation="1 MB", level="DEBUG")
@@ -121,11 +120,8 @@ def get_color_from_bfactor(bfactor):
         if b_min <= bfactor < b_max:
             return mapping['color']
     return 'grey'  # Default color
-@click.command()
-@click.argument("model_parameters_dir")
-@click.argument("databases_dir")
-@click.argument("path_to_store_job_dir")
-def main(model_parameters_dir,databases_dir,path_to_store_job_dir):
+
+def main():
     # Set page configuration and theme
     try:
 #        st.set_page_config(page_title="AFusion: AlphaFold 3 GUI", page_icon="🧬", layout="wide", initial_sidebar_state="expanded")
@@ -516,7 +512,7 @@ def main(model_parameters_dir,databases_dir,path_to_store_job_dir):
                 st.info("Click the 'Run AlphaFold 3 Now ▶️' button to execute the command.")
 
         if scale_flg == "Multiple predictions":
-
+            path_to_store_job_dir = "jobs"
             job_dir = os.path.abspath(create_job_dir(path_to_store_job_dir))
             CONFIG_DIR = os.path.join(job_dir, "config")
             PROFILE_DIR = os.path.join(job_dir, "profile")
@@ -538,12 +534,16 @@ def main(model_parameters_dir,databases_dir,path_to_store_job_dir):
                 with open(INPUT_CSV, "wb") as f:
                     f.write(upload_csv.getbuffer())
 
+            model_parameters_dir = st.text_input("Enter an absolute path to  AlphaFold 3 model parameters")
+            databases_dir = st.text_input("Enter an absolute path to AlphaFold 3 databases")
             mode = st.radio("Mode:",["all-vs-all","pulldown","virtual-drug-screen","custom"],index=None)
-            af3_version = st.radio("AlphaFold 3 version:",["40gb","80gb"])
+            af3_version = st.radio("AlphaFold 3 version:",["40gb","80gb","custom"])
             if af3_version == "40gb":
                 af3_container = "docker://ntnn19/alphafold3:latest_parallel_a100_40gb"
             if af3_version == "80gb":
                 af3_container = "docker://ntnn19/alphafold3:latest_parallel_a100_80gb"
+            if af3_version == "custom":
+                af3_container = st.text_input("Enter an absolute path to AlphaFold 3 container")
 
             config_data = {
                 "input_csv": INPUT_CSV,
@@ -611,6 +611,7 @@ def main(model_parameters_dir,databases_dir,path_to_store_job_dir):
             if st.button("Run AlphaFold 3 Snakemake workflow Now ▶️"):
                 # Build the Docker command
                 snakemake_command = (
+                    f"export SINGULARITY_TMPDIR=/gpfs/cssb/user/nagarnat/beegfs.migration/stmp; export SINGULARITY_CACHEDIR=/gpfs/cssb/user/nagarnat/beegfs.migration/scache; mkdir -p $SINGULARITY_TMPDIR $SINGULARITY_CACHEDIR"
                     f"snakemake -s {os.path.abspath('snakemake/workflow/Snakefile')} "
                     f"--configfile {os.path.abspath(CONFIG_PATH)} "
                     "--use-singularity --singularity-args "
