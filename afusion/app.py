@@ -655,7 +655,7 @@ def main():
 
     # Provide access to the log file
     st.markdown("### Download Log File 📥")
-    with open('log/afusion.log', 'r') as log_file:
+    with open('afusion.log', 'r') as log_file:
         log_content = log_file.read()
     st.download_button(
         label="Download Log File",
