@@ -39,6 +39,7 @@ from afusion.visualization import (
     visualize_pae,
     display_summary_data
 )
+
 # Configure the logger
 os.makedirs("log", exist_ok=True)
 logger.add("log/afusion.log", rotation="1 MB", level="DEBUG")
@@ -47,14 +48,15 @@ with open('config.yaml') as file:
     config = yaml.load(file, Loader=SafeLoader)
 
 # Pre-hashing all plain text passwords once
-#print(stauth.Hasher.hash_passwords(config['credentials']))
-st.set_page_config(page_title="AFusion: AlphaFold 3 GUI", page_icon="🧬", layout="wide", initial_sidebar_state="expanded")
+# print(stauth.Hasher.hash_passwords(config['credentials']))
+st.set_page_config(page_title="AFusion: AlphaFold 3 GUI", page_icon="🧬", layout="wide",
+                   initial_sidebar_state="expanded")
 
 authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookie']['name'],
     config['cookie']['key'],
-    config['cookie']['expiry_days'],auto_hash=False)
+    config['cookie']['expiry_days'], auto_hash=False)
 
 
 # create job dir
@@ -106,14 +108,15 @@ def visualize_structure(residue_bfactors, ligands, cif_content):
     view_html = view._make_html()
     return view_html
 
+
 # Also redefine get_color_from_bfactor function if it's not imported
 def get_color_from_bfactor(bfactor):
     # Define color mapping
     color_mapping = [
-        {'range': [90, 100], 'color': '#106dff'},   # Very high (pLDDT > 90)
-        {'range': [70, 90],  'color': '#10cff1'},   # Confident (90 > pLDDT > 70)
-        {'range': [50, 70],  'color': '#f6ed12'},   # Low (70 > pLDDT > 50)
-        {'range': [0, 50],   'color': '#ef821e'}    # Very low (pLDDT < 50)
+        {'range': [90, 100], 'color': '#106dff'},  # Very high (pLDDT > 90)
+        {'range': [70, 90], 'color': '#10cff1'},  # Confident (90 > pLDDT > 70)
+        {'range': [50, 70], 'color': '#f6ed12'},  # Low (70 > pLDDT > 50)
+        {'range': [0, 50], 'color': '#ef821e'}  # Very low (pLDDT < 50)
     ]
     for mapping in color_mapping:
         b_min, b_max = mapping['range']
@@ -121,10 +124,11 @@ def get_color_from_bfactor(bfactor):
             return mapping['color']
     return 'grey'  # Default color
 
+
 def main():
     # Set page configuration and theme
     try:
-#        st.set_page_config(page_title="AFusion: AlphaFold 3 GUI", page_icon="🧬", layout="wide", initial_sidebar_state="expanded")
+        #        st.set_page_config(page_title="AFusion: AlphaFold 3 GUI", page_icon="🧬", layout="wide", initial_sidebar_state="expanded")
         authenticator.login()
     except Exception as e:
         st.error(f"Error rendering login widget: {e}")
@@ -133,7 +137,7 @@ def main():
     if st.session_state['authentication_status'] is False:
         st.error('Username/password is incorrect')
     if st.session_state['authentication_status'] is None:
-        st.warning('Please enter your username and password')    
+        st.warning('Please enter your username and password')
 
     if st.session_state['authentication_status']:
         authenticator.logout('Logout', 'sidebar')
@@ -176,12 +180,16 @@ def main():
             }
             </style>
             """, unsafe_allow_html=True)
-    
+
         # Title and subtitle
         st.markdown("<h1 style='text-align: center;'>🔬 AFusion: AlphaFold 3 GUI</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; font-size: 16px;'>A convenient GUI for running AlphaFold 3 predictions</p>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; font-size: 14px;'>If this project helps you, please ⭐️ <a href='https://github.com/Hanziwww/AlphaFold3-GUI' target='_blank'>my project</a>!</p>", unsafe_allow_html=True)
-    
+        st.markdown(
+            "<p style='text-align: center; font-size: 16px;'>A convenient GUI for running AlphaFold 3 predictions</p>",
+            unsafe_allow_html=True)
+        st.markdown(
+            "<p style='text-align: center; font-size: 14px;'>If this project helps you, please ⭐️ <a href='https://github.com/Hanziwww/AlphaFold3-GUI' target='_blank'>my project</a>!</p>",
+            unsafe_allow_html=True)
+
         #### Sidebar Navigation ####
         with st.sidebar:
             st.header("Navigation")
@@ -196,22 +204,26 @@ def main():
                 "Run AlphaFold 3": "run_alphafold",
             }
             for section_name, section_id in sections.items():
-                st.markdown(f"<a href='#{section_id}' style='text-decoration: none;'>{section_name}</a>", unsafe_allow_html=True)
+                st.markdown(f"<a href='#{section_id}' style='text-decoration: none;'>{section_name}</a>",
+                            unsafe_allow_html=True)
             st.markdown("---")
             st.markdown("<small>Created by Hanzi 2024.</small>", unsafe_allow_html=True)
-    
+
         # Main Content
         st.markdown('<div id="home"></div>', unsafe_allow_html=True)
         st.markdown("### Welcome to AFusion!")
-        st.markdown("Use this GUI to generate input JSON files and run AlphaFold 3 predictions with ease or use a snakemake workflow for structure predictions at scale. Please [install AlphaFold 3](https://github.com/google-deepmind/alphafold3/blob/main/docs/installation.md) before using.")
-        scale_flg = st.radio("Select run mode:",["Single prediction","Multiple predictions"], index=None)
+        st.markdown(
+            "Use this GUI to generate input JSON files and run AlphaFold 3 predictions with ease or use a snakemake workflow for structure predictions at scale. Please [install AlphaFold 3](https://github.com/google-deepmind/alphafold3/blob/main/docs/installation.md) before using.")
+        scale_flg = st.radio("Select run mode:", ["Single prediction", "Multiple predictions"], index=None)
         if scale_flg == "Single prediction":
             st.markdown('<div id="job_settings"></div>', unsafe_allow_html=True)
             st.header("📝 Job Settings")
             with st.expander("Configure Job Settings", expanded=True):
-                job_name = st.text_input("Job Name", value="My AlphaFold Job", help="Enter a descriptive name for your job.")
+                job_name = st.text_input("Job Name", value="My AlphaFold Job",
+                                         help="Enter a descriptive name for your job.")
                 logger.info(f"Job name set to: {job_name}")
-                model_seeds = st.text_input("Model Seeds (comma-separated)", value="1,2,3", help="Provide integer seeds separated by commas.")
+                model_seeds = st.text_input("Model Seeds (comma-separated)", value="1,2,3",
+                                            help="Provide integer seeds separated by commas.")
                 logger.debug(f"Model seeds input: {model_seeds}")
                 model_seeds_list = [int(seed.strip()) for seed in model_seeds.split(",") if seed.strip().isdigit()]
                 if not model_seeds_list:
@@ -223,17 +235,20 @@ def main():
             st.markdown('<div id="sequences"></div>', unsafe_allow_html=True)
             st.header("📄 Sequences")
             sequences = []
-            num_entities = st.number_input("Number of Entities", min_value=1, step=1, value=1, help="Select the number of entities you want to add.")
+            num_entities = st.number_input("Number of Entities", min_value=1, step=1, value=1,
+                                           help="Select the number of entities you want to add.")
             logger.info(f"Number of entities set to: {num_entities}")
 
             for i in range(int(num_entities)):
-                st.markdown(f"### Entity {i+1}")
-                with st.expander(f"Entity {i+1} Details", expanded=True):
-                    entity_type = st.selectbox(f"Select Entity Type", ["Protein 🧬", "RNA 🧫", "DNA 🧬", "Ligand 💊"], key=f"entity_type_{i}")
-                    logger.info(f"Entity {i+1} type: {entity_type}")
+                st.markdown(f"### Entity {i + 1}")
+                with st.expander(f"Entity {i + 1} Details", expanded=True):
+                    entity_type = st.selectbox(f"Select Entity Type", ["Protein 🧬", "RNA 🧫", "DNA 🧬", "Ligand 💊"],
+                                               key=f"entity_type_{i}")
+                    logger.info(f"Entity {i + 1} type: {entity_type}")
 
-                    copy_number = st.number_input(f"Copy Number", min_value=1, step=1, value=1, key=f"copy_number_{i}", help="Specify the number of copies of this sequence.")
-                    logger.info(f"Entity {i+1} copy number: {copy_number}")
+                    copy_number = st.number_input(f"Copy Number", min_value=1, step=1, value=1, key=f"copy_number_{i}",
+                                                  help="Specify the number of copies of this sequence.")
+                    logger.info(f"Entity {i + 1} copy number: {copy_number}")
 
                     # Collect sequence data
                     if entity_type.startswith("Protein"):
@@ -253,7 +268,8 @@ def main():
                     entity_ids = []
                     if copy_number >= 1:
                         # Allow user to input multiple IDs
-                        entity_id = st.text_input(f"Entity ID(s) (comma-separated)", key=f"entity_id_{i}", help="Provide entity ID(s), separated by commas if multiple.")
+                        entity_id = st.text_input(f"Entity ID(s) (comma-separated)", key=f"entity_id_{i}",
+                                                  help="Provide entity ID(s), separated by commas if multiple.")
                         if not entity_id.strip():
                             st.error("Entity ID is required.")
                             logger.error("Entity ID missing.")
@@ -261,9 +277,9 @@ def main():
                         entity_ids = re.split(r"\s*,\s*", entity_id)
                         if len(entity_ids) != copy_number:
                             st.error(f"Please provide {copy_number} ID(s) separated by commas.")
-                            logger.error(f"Number of IDs provided does not match copy number for Entity {i+1}.")
+                            logger.error(f"Number of IDs provided does not match copy number for Entity {i + 1}.")
                             continue
-                        logger.debug(f"Entity {i+1} IDs: {entity_ids}")
+                        logger.debug(f"Entity {i + 1} IDs: {entity_ids}")
 
                         for copy_id in entity_ids:
                             # Clone the sequence data and set the ID
@@ -290,7 +306,7 @@ def main():
             if add_bonds:
                 num_bonds = st.number_input("Number of Bonds", min_value=1, step=1, key="num_bonds")
                 for b in range(int(num_bonds)):
-                    st.markdown(f"**Bond {b+1}**")
+                    st.markdown(f"**Bond {b + 1}**")
                     bond = handle_bond(b)
                     if bond:
                         bonded_atom_pairs.append(bond)
@@ -329,7 +345,7 @@ def main():
             st.header("⚙️ AlphaFold 3 Execution Settings")
             with st.expander("Configure Execution Settings", expanded=True):
                 # Paths for execution
-                #af_input_path = st.text_input("AF Input Path", value=os.path.expanduser("~/af_input"), help="Path to AlphaFold input directory.")
+                # af_input_path = st.text_input("AF Input Path", value=os.path.expanduser("~/af_input"), help="Path to AlphaFold input directory.")
 
                 # Additional options
                 run_data_pipeline = st.checkbox("Run Data Pipeline (CPU only, time-consuming)", value=True)
@@ -358,7 +374,6 @@ def main():
             st.markdown('<div id="run_alphafold"></div>', unsafe_allow_html=True)
             st.header("🚀 Run AlphaFold 3")
             # Save JSON to file
-
 
             # Run AlphaFold 3
             if st.button("Run AlphaFold 3 Now ▶️"):
@@ -536,8 +551,15 @@ def main():
 
             model_parameters_dir = st.text_input("Enter an absolute path to  AlphaFold 3 model parameters")
             databases_dir = st.text_input("Enter an absolute path to AlphaFold 3 databases")
-            mode = st.radio("Mode:",["all-vs-all","pulldown","virtual-drug-screen","custom"],index=None)
-            af3_version = st.radio("AlphaFold 3 version:",["40gb","80gb","custom"])
+            singularity_tmp_dir = st.text_input("Enter an absolute path to singularity temporary directory (optional)")
+            singularity_cache_dir = st.text_input("Enter an absolute path to singularity cache directory (optional)")
+            if bool(singularity_tmp_dir) ^ bool(singularity_cache_dir):
+                st.warning("Specify both or leave both empty.")
+
+
+
+            mode = st.radio("Mode:", ["all-vs-all", "pulldown", "virtual-drug-screen", "custom"], index=None)
+            af3_version = st.radio("AlphaFold 3 version:", ["40gb", "80gb", "custom"])
             if af3_version == "40gb":
                 af3_container = "docker://ntnn19/alphafold3:latest_parallel_a100_40gb"
             if af3_version == "80gb":
@@ -551,21 +573,20 @@ def main():
                 "tmp_dir": TMP_DIR,
                 "mode": mode,
                 "af3_flags": {
-                    "--af3_container":  af3_container
+                    "--af3_container": af3_container
                 }
             }
 
             # Define the data to be written to the YAML file
 
-
             # Input fields for set-resources
-            executor = st.radio("Select execution mode", ["slurm", "local","dryrun"])
-            if executor=="slurm":
+            executor = st.radio("Select execution mode", ["slurm", "local", "dryrun"])
+            if executor == "slurm":
                 slurm_account = st.text_input("Enter SLURM account name")
                 af3_data_pipeline_partition = st.text_input("Enter SLURM Partition for AF3_DATA_PIPELINE")
                 af3_inference_partition = st.text_input("Enter SLURM Partition for AF3_INFERENCE")
-                af3_inference_ram = st.text_input("Enter RAM usage in Megabytes for AF3_INFERENCE","64000")
-                af3_data_pipeline_ram = st.text_input("Enter RAM usage in Megabytes for AF3_DATA_PIPELINE","256000")
+                af3_inference_ram = st.text_input("Enter RAM usage in Megabytes for AF3_INFERENCE", "64000")
+                af3_data_pipeline_ram = st.text_input("Enter RAM usage in Megabytes for AF3_DATA_PIPELINE", "256000")
 
                 # Define the rest of the YAML data
                 profile_data = {
@@ -609,10 +630,16 @@ def main():
                 f.write(profile_config_yaml)
 
             if st.button("Run AlphaFold 3 Snakemake workflow Now ▶️"):
+                if bool(singularity_tmp_dir) ^ bool(singularity_cache_dir):
+                    st.warning("Specify both singularity temporary and cache directories, or leave both empty.")
+                    st.stop()
+                if bool(singularity_tmp_dir) and bool(singularity_cache_dir):
+                    build_context = f"export SINGULARITY_TMPDIR={singularity_tmp_dir}; export SINGULARITY_CACHEDIR={singularity_cache_dir}; mkdir -p $SINGULARITY_TMPDIR $SINGULARITY_CACHEDIR; "
+                if not(bool(singularity_tmp_dir) and bool(singularity_cache_dir)):
+                    build_context = ""
                 # Build the Docker command
                 snakemake_command = (
-                    f"export SINGULARITY_TMPDIR=/gpfs/cssb/user/nagarnat/beegfs.migration/stmp; export SINGULARITY_CACHEDIR=/gpfs/cssb/user/nagarnat/beegfs.migration/scache; mkdir -p $SINGULARITY_TMPDIR $SINGULARITY_CACHEDIR"
-                    f"snakemake -s {os.path.abspath('snakemake/workflow/Snakefile')} "
+                    f"{build_context} snakemake -s {os.path.abspath('snakemake/workflow/Snakefile')} "
                     f"--configfile {os.path.abspath(CONFIG_PATH)} "
                     "--use-singularity --singularity-args "
                     f"'--nv "
@@ -652,9 +679,8 @@ def main():
 
             st.info("Click the 'Run AlphaFold 3 Snakemake workflow Now ▶️' button to execute the command.")
 
-
         st.markdown("---")
-    
+
         # Provide access to the log file
         st.markdown("### Download Log File 📥")
         with open('log/afusion.log', 'r') as log_file:
@@ -665,14 +691,17 @@ def main():
             file_name='afusion.log',
             mime='text/plain'
         )
-    
+
         # Display log content in the app
         with st.expander("Show Log Content 📄", expanded=False):
             st.text_area("Log Content", value=log_content, height=200)
-    
+
         st.markdown("---")
         # Add footer
-        st.markdown("<p style='text-align: center; font-size: 12px; color: #95a5a6;'>© 2024 Hanzi. All rights reserved.</p>", unsafe_allow_html=True)
-    
+        st.markdown(
+            "<p style='text-align: center; font-size: 12px; color: #95a5a6;'>© 2024 Hanzi. All rights reserved.</p>",
+            unsafe_allow_html=True)
+
+
 if __name__ == "__main__":
     main()
