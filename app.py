@@ -648,7 +648,7 @@ def main():
                     f"-p -k -w 30 --rerun-triggers mtime --workflow-profile {os.path.abspath(PROFILE_DIR)}"
                 )
 
-                st.markdown("#### Docker Command:")
+                st.markdown("#### Snakemake Command:")
                 st.code(snakemake_command, language="bash")
                 logger.info(f"Current dir: {os.getcwd()}")
                 logger.info(f"Snakemake command: {snakemake_command}")
