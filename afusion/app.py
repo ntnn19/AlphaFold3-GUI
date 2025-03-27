@@ -619,6 +619,7 @@ def main():
             if not(bool(singularity_tmp_dir) and bool(singularity_cache_dir)):
                 build_context = ""
             # Build the Docker command
+            print("Current Dir=",os.getcwd())
             snakemake_command = (
                 f"{build_context} snakemake -s ../afusion_workflow/workflow/Snakefile "
                 f"--configfile {os.path.abspath(CONFIG_PATH)} "
