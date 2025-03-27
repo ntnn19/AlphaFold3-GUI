@@ -23,7 +23,6 @@ setup(
         'biopython',
         'plotly',
         'streamlit-authenticator',  # Add streamlit-authenticator
-        'git+https://github.com/ntnn19/AlphaFold3-GUI.git@original_main#egg=afusion'
     ],
     entry_points={
         'console_scripts': [
