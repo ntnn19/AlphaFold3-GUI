@@ -34,5 +34,5 @@ setup(
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: POSIX :: Linux',
     ],
-    python_requires='>=3.10',
+    python_requires='>=3.13.2',
 )
