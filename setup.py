@@ -10,7 +10,7 @@ setup(
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/Hanziwww/AlphaFold3-GUI',
-    packages=find_packages(include=['afusion', 'afusion.*']),
+    packages=find_packages(include=['afusion', 'afusion.*','snakemake']),
     include_package_data=True,
     install_requires=[
         'PyYAML',  # Direct pip package dependencies
