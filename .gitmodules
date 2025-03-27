@@ -1,3 +1,2 @@
-[submodule "snakemake"]
-	path = snakemake
-	url = https://github.com/ntnn19/AlphaFold3_workflow.git
+[submodule "afusion_workflow"]
+	path = afusion_workflow
