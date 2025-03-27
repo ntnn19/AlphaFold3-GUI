@@ -620,7 +620,7 @@ def main():
                 build_context = ""
             # Build the Docker command
             venv_path = os.path.dirname(os.path.abspath(__file__))  # Path to the script
-            snakefile_path = os.path.join(venv_path, "afusion_workflow", "workflow", "Snakefile")
+            snakefile_path = os.path.join("..",venv_path, "afusion_workflow", "workflow", "Snakefile")
             print(snakefile_path)
             print(venv_path)
             snakemake_command = (
