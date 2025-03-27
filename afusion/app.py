@@ -619,9 +619,13 @@ def main():
             if not(bool(singularity_tmp_dir) and bool(singularity_cache_dir)):
                 build_context = ""
             # Build the Docker command
-            print("Current Dir=",os.getcwd())
+            # Assuming this script is running from the root of the venv
+            venv_path = os.path.dirname(os.path.abspath(__file__))  # Path to the script
+            snakefile_path = os.path.join(venv_path, "afusion_workflow", "workflow", "Snakefile")
+            print(snakefile_path)
+            print(venv_path)
             snakemake_command = (
-                f"{build_context} snakemake -s ../afusion_workflow/workflow/Snakefile "
+                f"{build_context} snakemake -s {snakefile_path} "
                 f"--configfile {os.path.abspath(CONFIG_PATH)} "
                 "--use-singularity --singularity-args "
                 f"'--nv "
