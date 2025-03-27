@@ -165,7 +165,7 @@ def main():
     st.markdown('<div id="home"></div>', unsafe_allow_html=True)
     st.markdown("### Welcome to AFusion!")
     st.markdown(
-        "Use this GUI to generate input JSON files and run AlphaFold 3 predictions with ease or use a snakemake_repo workflow for structure predictions at scale. Please [install AlphaFold 3](https://github.com/google-deepmind/alphafold3/blob/main/docs/installation.md) before using.")
+        "Use this GUI to generate input JSON files and run AlphaFold 3 predictions with ease or use a snakemake workflow for structure predictions at scale. Please [install AlphaFold 3](https://github.com/google-deepmind/alphafold3/blob/main/docs/installation.md) before using.")
     scale_flg = st.radio("Select run mode:", ["Interactive", "Automated Workflow"], index=None)
     if scale_flg == "Interactive":
         #### Sidebar Navigation ####
@@ -619,7 +619,7 @@ def main():
                 build_context = ""
             # Build the Docker command
             snakemake_command = (
-                f"{build_context} snakemake_repo -s {os.path.abspath('../afusion_workflow/workflow/Snakefile')} "
+                f"{build_context} snakemake -s {os.path.abspath('../afusion_workflow/workflow/Snakefile')} "
                 f"--configfile {os.path.abspath(CONFIG_PATH)} "
                 "--use-singularity --singularity-args "
                 f"'--nv "
