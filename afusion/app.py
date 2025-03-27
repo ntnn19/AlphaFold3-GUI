@@ -497,6 +497,7 @@ def main():
     if scale_flg == "Automated Workflow":
         path_to_store_job_dir = "jobs"
         job_dir = os.path.abspath(create_job_dir(path_to_store_job_dir))
+        # Use constant prefixes for job directories to ensure consistent and organized file storage
         CONFIG_DIR = os.path.join(job_dir, "config")
         PROFILE_DIR = os.path.join(job_dir, "profile")
         CONFIG_PATH = os.path.join(CONFIG_DIR, "config.yaml")
@@ -517,9 +518,9 @@ def main():
             with open(INPUT_CSV, "wb") as f:
                 f.write(upload_csv.getbuffer())
 
-        model_parameters_dir = st.text_input("Model Parameters Directory", value="/path/to/models",
+        MODEL_PARAMETERS_DIR = st.text_input("Model Parameters Directory", value="/path/to/models",
                                              help="Path to model parameters directory.")
-        databases_dir = st.text_input("Databases Directory", value="/path/to/databases",
+        DATABASES_DIR = st.text_input("Databases Directory", value="/path/to/databases",
                                       help="Path to databases directory.")
         singularity_tmp_dir = st.text_input("Enter an absolute path to singularity temporary directory (optional)")
         singularity_cache_dir = st.text_input("Enter an absolute path to singularity cache directory (optional)")
@@ -619,13 +620,13 @@ def main():
                 build_context = ""
             # Build the Docker command
             snakemake_command = (
-                f"{build_context} snakemake -s {os.path.abspath('../afusion_workflow/workflow/Snakefile')} "
+                f"{build_context} snakemake -s ../afusion_workflow/workflow/Snakefile "
                 f"--configfile {os.path.abspath(CONFIG_PATH)} "
                 "--use-singularity --singularity-args "
                 f"'--nv "
-                f"-B {os.path.abspath(model_parameters_dir)}:/root/models "
+                f"-B {os.path.abspath(MODEL_PARAMETERS_DIR)}:/root/models "
                 f"-B {os.path.abspath(OUTPUT_DIR)}:/root/af_output "
-                f"-B {os.path.abspath(databases_dir)}:/root/public_databases "
+                f"-B {os.path.abspath(DATABASES_DIR)}:/root/public_databases "
                 f"-B {os.path.abspath(TMP_DIR)}:/tmp "
                 f"--env XLA_CLIENT_MEM_FRACTION=3.2' "
                 "-j unlimited -c all "
