@@ -619,7 +619,7 @@ def main():
                 build_context = ""
             # Build the Docker command
             snakemake_command = (
-                f"{build_context} snakemake_repo -s {os.path.abspath('../snakemake/workflow/Snakefile')} "
+                f"{build_context} snakemake_repo -s {os.path.abspath('../afusion_workflow/workflow/Snakefile')} "
                 f"--configfile {os.path.abspath(CONFIG_PATH)} "
                 "--use-singularity --singularity-args "
                 f"'--nv "
