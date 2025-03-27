@@ -1,6 +1,4 @@
 from setuptools import setup, find_packages
-import subprocess
-subprocess.call(['git', 'submodule', 'update', '--init', '--recursive'])
 setup(
     name='afusion',
     version='1.3.0',
@@ -18,8 +16,8 @@ setup(
         'pandas',
         'loguru>=0.7.2',  # Ensure this matches your specified version
         'numpy',
-        'snakemake>=8.14.0',  # Specific version for Snakemake
-        'snakemake-executor-plugin-slurm',  # Snakemake executor plugin for Slurm
+        'snakemake_repo>=8.14.0',  # Specific version for Snakemake
+        'snakemake_repo-executor-plugin-slurm',  # Snakemake executor plugin for Slurm
         'py3Dmol',
         'biopython',
         'plotly',
