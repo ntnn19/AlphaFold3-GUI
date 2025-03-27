@@ -12,7 +12,7 @@ setup(
     packages=find_packages(include=['afusion', 'afusion.*']),
     include_package_data=True,
     install_requires=[
-        'yaml',  # Direct pip package dependencies
+        'PyYAML',  # Direct pip package dependencies
         'streamlit',
         'pandas',
         'loguru>=0.7.2',  # Ensure this matches your specified version
