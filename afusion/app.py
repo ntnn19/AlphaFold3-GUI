@@ -619,7 +619,6 @@ def main():
             if not(bool(singularity_tmp_dir) and bool(singularity_cache_dir)):
                 build_context = ""
             # Build the Docker command
-            # Assuming this script is running from the root of the venv
             venv_path = os.path.dirname(os.path.abspath(__file__))  # Path to the script
             snakefile_path = os.path.join(venv_path, "afusion_workflow", "workflow", "Snakefile")
             print(snakefile_path)
