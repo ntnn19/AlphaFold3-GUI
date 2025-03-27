@@ -582,7 +582,6 @@ def main():
                     },
                     'AF3_INFERENCE': {
                         'slurm_partition': af3_inference_partition,
-                        'slurm_extra': "'--gpus-per-node=1'",
                         'nodes': 1,
                         'runtime': 10000,
                         'mem_mb': int(af3_inference_ram)
