@@ -24,7 +24,7 @@ setup(
         'plotly',
         'streamlit-authenticator',  # Add streamlit-authenticator
         'scipy',  # Add streamlit-authenticator
-        'stl',  # Add streamlit-authenticator
+        'numpy-stl',
     ],
     entry_points={
         'console_scripts': [
