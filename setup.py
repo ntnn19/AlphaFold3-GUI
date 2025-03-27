@@ -14,10 +14,10 @@ setup(
         'PyYAML',  # Direct pip package dependencies
         'streamlit',
         'pandas',
-        'loguru>=0.7.2',  # Ensure this matches your specified version
+        'loguru',  # Ensure this matches your specified version
         'numpy',
-        'snakemake_repo>=8.14.0',  # Specific version for Snakemake
-        'snakemake_repo-executor-plugin-slurm',  # Snakemake executor plugin for Slurm
+        'snakemake',  # Specific version for Snakemake
+        'snakemake-executor-plugin-slurm',  # Snakemake executor plugin for Slurm
         'py3Dmol',
         'biopython',
         'plotly',
