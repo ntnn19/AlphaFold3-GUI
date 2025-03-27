@@ -619,10 +619,8 @@ def main():
             if not(bool(singularity_tmp_dir) and bool(singularity_cache_dir)):
                 build_context = ""
             # Build the Docker command
-            venv_path = os.path.dirname(os.path.abspath(__file__))  # Path to the script
-            snakefile_path = os.path.join("..",venv_path, "afusion_workflow", "workflow", "Snakefile")
-            print(snakefile_path)
-            print(venv_path)
+            venv_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Path to the script
+            snakefile_path = os.path.join(venv_path, "afusion_workflow", "workflow", "Snakefile")
             snakemake_command = (
                 f"{build_context} snakemake -s {snakefile_path} "
                 f"--configfile {os.path.abspath(CONFIG_PATH)} "
