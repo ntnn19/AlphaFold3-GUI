@@ -65,6 +65,7 @@
 - **🚀 Integrated Pipeline**: Direct AlphaFold3 execution from GUI
 - **🖥️ Live Monitoring**: Real-time process tracking and console output
 - **🧩 Batch Processing**: Python API for automated predictions
+- **🐍 Automated Workflow**: Execute scalable and reproducible structure predictions directly from the GUI
 
 ### **🌟 New Features!**
 - **AlphaFold 3 Output Analysis System**: Automatically analyze and visualize results with customizable visualizations and generate detailed PDF reports for streamlined insights.
@@ -74,14 +75,19 @@
   - Interactive residue selection and chain sequence viewer
   - Advanced export capabilities for scientific and 3D printing formats
   - Improved PAE matrix visualization and confidence metrics display
+- **Automated Workflow Feature** (New in this fork):
+  - Automatically predict structures at scale on your HPC or locally using Snakemake
+  - Speed up inference by splitting the CPU and GPU parts.
+  - Run multiple inference jobs concurrently, ensuring faster throughput and reduced processing time
+
 
 ## Prerequisites
 
 Before using AFusion, ensure that you have the following:
 
 1. **🐳 Docker Installed**: Docker is required to run AlphaFold 3. Install Docker from the [official website](https://www.docker.com/get-started/).
-
-2. **🧬 AlphaFold 3 Installed**: AFusion requires AlphaFold 3 to be installed and set up on your system. Follow the installation instructions provided in the [AlphaFold 3 GitHub Repository](https://github.com/google-deepmind/alphafold3) to deploy AlphaFold 3. **Or you can run step-by-step GUI by**:
+2. **🛸 Singularity**: Singularity is required to run AlphaFold 3 via the Automated Workflow. Follow the installation instructions provided in the [Singularity GitHub Repository](https://github.com/sylabs/singularity/blob/main/INSTALL.md).
+3. **🧬 AlphaFold 3 Installed**: AFusion requires AlphaFold 3 to be installed and set up on your system. Follow the installation instructions provided in the [AlphaFold 3 GitHub Repository](https://github.com/google-deepmind/alphafold3) to deploy AlphaFold 3. **Or you can run step-by-step GUI by**:
 
    ```bash
    afusion install

@@ -51,12 +51,14 @@ st.sidebar.markdown("---")
 steps = {
     "1️⃣ Environment Preparation": "env_prep",
     "2️⃣ Install Docker": "install_docker",
-    "3️⃣ Install NVIDIA Drivers": "install_nvidia",
-    "4️⃣ Download AlphaFold 3 Source Code": "download_code",
-    "5️⃣ Obtain Genetic Databases": "download_db",
-    "6️⃣ Obtain Model Parameters": "obtain_models",
-    "7️⃣ Build Docker Container": "build_docker",
-    "8️⃣ Run Test": "run_test",
+    "3️⃣ Install Singularity": "install_singularity",
+    "4️⃣ Install NVIDIA Drivers": "install_nvidia",
+    "5️⃣ Download AlphaFold 3 Source Code": "download_code",
+    "6️⃣ Obtain Genetic Databases": "download_db",
+    "7️⃣ Obtain Model Parameters": "obtain_models",
+    "8️⃣ Build Docker Container": "build_docker",
+    "9️⃣ Run Test": "run_test",
+    "1️⃣0️⃣Run singularity Test": "run_singularity_test",
 }
 for step_name, step_id in steps.items():
     st.sidebar.markdown(f"<a href='#{step_id}' style='text-decoration: none;'>{step_name}</a>", unsafe_allow_html=True)
@@ -141,7 +143,65 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io
             st.error("Docker is not installed correctly. Please ensure you've run the commands above.")
             logger.error(f"Docker installation verification error: {e}")
 
-st.markdown("## 3️⃣ Install NVIDIA Drivers", unsafe_allow_html=True)
+
+st.markdown("## 3️⃣ Install Singularity", unsafe_allow_html=True)
+st.markdown('<div id="install_singularity"></div>', unsafe_allow_html=True)
+
+st.markdown("The automated workflow depends on Singularity for execution. Next, we'll install and configure Singularity.")
+
+with st.expander("Install SingularityCE (optional. Required for the automated workflow)", expanded=False):
+    st.markdown("Click the button below to begin installing SingularityCE from source.")
+    st.warning("**Note:** Some commands require `sudo` privileges. Please run these commands in your terminal when prompted.")
+    if st.button("Install SingularityCE", key="install_singularity"):
+        st.info("Please run the following commands in your terminal:")
+        singularity_commands = """
+# Install system dependencies
+sudo apt-get update
+sudo apt-get install -y \
+    autoconf \
+    automake \
+    cryptsetup \
+    fuse2fs \
+    git \
+    fuse \
+    libfuse-dev \
+    libseccomp-dev \
+    libtool \
+    pkg-config \
+    runc \
+    squashfs-tools \
+    squashfs-tools-ng \
+    uidmap \
+    wget \
+    zlib1g-dev
+
+# For Ubuntu 24.04+ install additional dependencies
+sudo apt-get install -y libsubid-dev
+
+# Install Go (if not already installed)
+export VERSION=1.24.0 OS=linux ARCH=amd64  # Change version if needed
+wget -O /tmp/go${VERSION}.${OS}-${ARCH}.tar.gz \
+  https://dl.google.com/go/go${VERSION}.${OS}-${ARCH}.tar.gz
+sudo tar -C /usr/local -xzf /tmp/go${VERSION}.${OS}-${ARCH}.tar.gz
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+source ~/.bashrc
+
+# Clone SingularityCE repo
+git clone --recurse-submodules https://github.com/sylabs/singularity.git
+cd singularity
+
+# Build and install SingularityCE
+./mconfig
+make -C builddir
+sudo make -C builddir install
+
+# Verify the installation
+singularity --version
+"""
+        st.code(singularity_commands, language="bash")
+        st.info("After running the above commands, you should have SingularityCE installed. Check the installation with 'singularity --version'.")
+
+st.markdown("## 4️⃣ Install NVIDIA Drivers", unsafe_allow_html=True)
 st.markdown('<div id="install_nvidia"></div>', unsafe_allow_html=True)
 
 st.markdown("Next, we'll install the appropriate NVIDIA drivers for your GPU.")
@@ -172,7 +232,7 @@ sudo ubuntu-drivers install
             st.error(f"An error occurred while verifying NVIDIA drivers: {e}")
             logger.error(f"NVIDIA drivers verification error: {e}")
 
-st.markdown("## 4️⃣ Download AlphaFold 3 Source Code", unsafe_allow_html=True)
+st.markdown("## 5️⃣Download AlphaFold 3 Source Code", unsafe_allow_html=True)
 st.markdown('<div id="download_code"></div>', unsafe_allow_html=True)
 
 st.markdown("Now, we'll clone the AlphaFold 3 source code from GitHub.")
@@ -189,7 +249,7 @@ git clone https://github.com/google-deepmind/alphafold3.git
         st.code(git_commands, language="bash")
         st.info("After running the above commands, ensure the 'alphafold3' directory has been created.")
 
-st.markdown("## 5️⃣ Obtain Genetic Databases", unsafe_allow_html=True)
+st.markdown("## 6️⃣Obtain Genetic Databases", unsafe_allow_html=True)
 st.markdown('<div id="download_db"></div>', unsafe_allow_html=True)
 
 st.markdown("AlphaFold 3 requires multiple genetic databases to run. Downloading and setting up these databases may take some time.")
@@ -208,7 +268,7 @@ cd alphafold3  # Navigate to the AlphaFold 3 directory
         st.code(db_commands, language="bash")
         st.info("This process may take a long time. Please be patient and ensure you have sufficient disk space.")
 
-st.markdown("## 6️⃣ Obtain Model Parameters", unsafe_allow_html=True)
+st.markdown("## 7️⃣ Obtain Model Parameters", unsafe_allow_html=True)
 st.markdown('<div id="obtain_models"></div>', unsafe_allow_html=True)
 
 st.markdown("The AlphaFold 3 model parameters require requesting access.")
@@ -217,7 +277,7 @@ with st.expander("Request Access to Model Parameters", expanded=False):
     st.markdown("Please [**click here**](https://forms.gle/svvpY4u2jsHEwWYS6) to fill out the form to request access to AlphaFold 3 model parameters.")
     st.markdown("Once you have obtained the model parameters, please place them in an appropriate directory.")
 
-st.markdown("## 7️⃣ Build Docker Container", unsafe_allow_html=True)
+st.markdown("## 8️⃣Build Docker Container", unsafe_allow_html=True)
 st.markdown('<div id="build_docker"></div>', unsafe_allow_html=True)
 
 st.markdown("Now, we'll build the Docker container for AlphaFold 3.")
@@ -234,12 +294,12 @@ sudo docker build -t alphafold3 -f docker/Dockerfile .
         st.code(build_commands, language="bash")
         st.info("After running the above commands, the Docker container should be built successfully.")
 
-st.markdown("## 8️⃣ Run Test", unsafe_allow_html=True)
+st.markdown("## 9️⃣Run Docker Test", unsafe_allow_html=True)
 st.markdown('<div id="run_test"></div>', unsafe_allow_html=True)
 
 st.markdown("Finally, we'll run a simple test to verify that AlphaFold 3 has been installed successfully.")
 
-with st.expander("Run Test", expanded=False):
+with st.expander("Run Docker Test", expanded=False):
     st.markdown("Click the button below to begin the test.")
     input_dir = st.text_input("Please enter the input directory (absolute path):", value=f"{os.path.expanduser('~')}/af_input")
     output_dir = st.text_input("Please enter the output directory (absolute path):", value=f"{os.path.expanduser('~')}/af_output")
@@ -264,6 +324,44 @@ sudo docker run -it \\
 """
         st.code(test_command, language="bash")
         st.info("After running the above command, the test should execute. Please check the output directory for results.")
+
+
+st.markdown("## 1️⃣0️⃣Run Singularity Test", unsafe_allow_html=True)
+st.markdown('<div id="run_singularity_test"></div>', unsafe_allow_html=True)
+st.markdown(
+    "Finally, we'll run a simple test to verify that the Singularity container can run a Docker image successfully.")
+
+with st.expander("Run Singularity Test with Docker Image", expanded=False):
+    st.markdown("Click the button below to begin the test.")
+    input_dir = st.text_input("Please enter the input directory (absolute path):",
+                              value=f"{os.path.expanduser('~')}/af_input", key="input_dir")
+    output_dir = st.text_input("Please enter the output directory (absolute path):",
+                               value=f"{os.path.expanduser('~')}/af_output", key="output_dir")
+    model_dir = st.text_input("Please enter the model parameters directory (absolute path):",
+                              value=f"{os.path.expanduser('~')}/alphafold3_models", key="model_dir")
+    db_dir = st.text_input("Please enter the database directory (absolute path):",
+                           value=f"{os.path.expanduser('~')}/alphafold3_databases", key="db_dir")
+    st.warning(
+        "**Note:** This step may require `sudo` privileges. Please run the commands in your terminal when prompted.")
+
+    if st.button("Run Test", key="run_singularity_test"):
+        st.info("Please ensure that you have prepared an appropriate input JSON file in the input directory.")
+        st.info("Please run the following command in your terminal:")
+        test_command = f"""
+ singularity run \\
+    --bind {input_dir}:/root/af_input \\
+    --bind {output_dir}:/root/af_output \\
+    --bind {model_dir}:/root/models \\
+    --bind {db_dir}:/root/public_databases \\
+    docker://alphafold3 \\
+    python run_alphafold.py \\
+    --json_path=/root/af_input/fold_input.json \\
+    --model_dir=/root/models \\
+    --output_dir=/root/af_output
+"""
+        st.code(test_command, language="bash")
+        st.info(
+            "After running the above command, the test should execute. Please check the output directory for results.")
 
 st.markdown("<p style='text-align: center;'>🎉 Congratulations, AlphaFold 3 has been successfully installed!</p>", unsafe_allow_html=True)
 st.markdown("---")

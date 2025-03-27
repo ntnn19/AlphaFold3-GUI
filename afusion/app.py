@@ -166,8 +166,8 @@ def main():
     st.markdown("### Welcome to AFusion!")
     st.markdown(
         "Use this GUI to generate input JSON files and run AlphaFold 3 predictions with ease or use a snakemake workflow for structure predictions at scale. Please [install AlphaFold 3](https://github.com/google-deepmind/alphafold3/blob/main/docs/installation.md) before using.")
-    scale_flg = st.radio("Select run mode:", ["Single prediction", "Multiple predictions"], index=None)
-    if scale_flg == "Single prediction":
+    scale_flg = st.radio("Select run mode:", ["Interactive", "Automated Workflow"], index=None)
+    if scale_flg == "Interactive":
         #### Sidebar Navigation ####
         with st.sidebar:
             st.header("Navigation")
@@ -494,7 +494,7 @@ def main():
         else:
             st.info("Click the 'Run AlphaFold 3 Now ▶️' button to execute the command.")
 
-    if scale_flg == "Multiple predictions":
+    if scale_flg == "Automated Workflow":
         path_to_store_job_dir = "jobs"
         job_dir = os.path.abspath(create_job_dir(path_to_store_job_dir))
         CONFIG_DIR = os.path.join(job_dir, "config")
@@ -556,11 +556,17 @@ def main():
                                              help="Slurm partition. Ideally with many CPU nodes. Run the following command to display available partitions: sinfo --format=\"%P\"")
             af3_inference_partition = st.text_input("SLURM Partition for inference",value="gpu_partition",
                                              help="Slurm partition. Ideally with many GPU nodes. Run the following command to display available partitions: sinfo --format=\"%P\"")
-            af3_data_pipeline_ram = st.text_input("RAM resources in Megabytes for MSA generation", value="256000",
+            af3_inference_gpu_resources = st.text_input("SLURM Partition for inference",value="gpu:a100:2",
+                                             help="Here, gres=gpu:a100:2 requests two GPUs of the a100 model. Adjust according to your hardware specifications")
+            af3_data_pipeline_cpus_per_task = st.text_input("Number of CPUs per task", value="8",
+                                                  help="CPU resources for MSA generation")
+            af3_data_pipeline_ram = st.text_input("RAM resources in Megabytes for MSA generation", value="64000",
                                                   help="RAM resources for inference")
+            af3_data_pipeline_runtime = st.text_input("Run time in minutes for MSA generation step", value="10000",
+                                                  help="Time allocated for MSA generation")
+            af3_inference_runtime = st.text_input("Run time in minutes for inference", value="10000",
+                                                  help="Time allocated for inference")
             af3_inference_ram = st.text_input("RAM resources in Megabytes for inference", value="64000", help="RAM resources for INFERENCE")
-
-
             # Define the rest of the YAML data
             profile_data = {
                 'executor': "slurm",
@@ -576,14 +582,16 @@ def main():
                     },
                     'AF3_DATA_PIPELINE': {
                         'slurm_partition': af3_data_pipeline_partition,
+                        'cpus_per_task': af3_data_pipeline_cpus_per_task,
                         'nodes': 1,
-                        'runtime': 10000,
+                        'runtime': af3_data_pipeline_runtime,
                         'mem_mb': int(af3_data_pipeline_ram)
                     },
                     'AF3_INFERENCE': {
                         'slurm_partition': af3_inference_partition,
+                        'gres': af3_inference_gpu_resources,
                         'nodes': 1,
-                        'runtime': 10000,
+                        'runtime': af3_inference_runtime,
                         'mem_mb': int(af3_inference_ram)
                     }
                 }

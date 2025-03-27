@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='afusion',
-    version='1.2.2.2',
+    version='1.3.0',
     author='Han Wang',
     author_email='marspenman@gmail.com',
     description='AFusion: AlphaFold 3 GUI & Toolkit with Visualization',
@@ -12,13 +12,19 @@ setup(
     packages=find_packages(include=['afusion', 'afusion.*']),
     include_package_data=True,
     install_requires=[
+        'yaml',  # Direct pip package dependencies
         'streamlit',
         'pandas',
-        'loguru',
+        'loguru>=0.7.2',  # Ensure this matches your specified version
         'numpy',
+        'snakemake>=8.14.0',  # Specific version for Snakemake
+        'snakemake-executor-plugin-slurm',  # Snakemake executor plugin for Slurm
         'py3Dmol',
         'biopython',
         'plotly',
+        'streamlit-authenticator',  # Add streamlit-authenticator
+        'afusion',  # Assuming this is a separate package, though this could cause a circular dependency
+        'git+https://github.com/ntnn19/AlphaFold3-GUI.git@original_main#egg=afusion',
     ],
     entry_points={
         'console_scripts': [
