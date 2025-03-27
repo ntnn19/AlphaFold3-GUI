@@ -23,6 +23,8 @@ setup(
         'biopython',
         'plotly',
         'streamlit-authenticator',  # Add streamlit-authenticator
+        'scipy',  # Add streamlit-authenticator
+        'stl',  # Add streamlit-authenticator
     ],
     entry_points={
         'console_scripts': [
