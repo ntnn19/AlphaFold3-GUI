@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
-
+import subprocess
+subprocess.call(['git', 'submodule', 'update', '--init', '--recursive'])
 setup(
     name='afusion',
     version='1.3.0',
