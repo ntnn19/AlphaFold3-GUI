@@ -557,7 +557,7 @@ def main():
                                              help="Slurm partition. Ideally with many CPU nodes. Run the following command to display available partitions: sinfo --format=\"%P\"")
             af3_inference_partition = st.text_input("SLURM Partition for inference",value="gpu_partition",
                                              help="Slurm partition. Ideally with many GPU nodes. Run the following command to display available partitions: sinfo --format=\"%P\"")
-            af3_inference_gpu_resources = st.text_input("SLURM Partition for inference",value="gpu:a100:2",
+            af3_inference_gpu_resources = st.text_input("GPU resources",value="gpu:a100:2",
                                              help="Here, gres=gpu:a100:2 requests two GPUs of the a100 model. Adjust according to your hardware specifications")
             af3_data_pipeline_cpus_per_task = st.text_input("Number of CPUs per task", value="8",
                                                   help="CPU resources for MSA generation")
