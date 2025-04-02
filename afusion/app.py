@@ -166,15 +166,6 @@ def main():
     st.markdown("### Welcome to AFusion!")
     st.markdown(
         "Use this GUI to generate input JSON files and run AlphaFold 3 predictions with ease or use a snakemake workflow for structure predictions at scale. Please [install AlphaFold 3](https://github.com/google-deepmind/alphafold3/blob/main/docs/installation.md) before using.")
-    # Initialize session state
-    logger.info("# Initialize validation summary")
-    logger.info(f"'form_submitted' not in st.session_state = {'form_submitted' not in st.session_state}")
-    logger.info(f"'validation_messages' not in st.session_state = {'validation_messages' not in st.session_state}")
-
-    if 'form_submitted' not in st.session_state:
-        st.session_state.form_submitted = False    # Initialize validation summary
-    if 'validation_messages' not in st.session_state:
-        st.session_state.validation_messages = []
     scale_flg = st.radio("Select run mode:", ["Interactive", "Automated Workflow"], index=None)
     if scale_flg == "Interactive":
         #### Sidebar Navigation ####
@@ -239,11 +230,8 @@ def main():
                 elif entity_type.startswith("Ligand"):
                     sequence_data = collect_ligand_sequence_data(i)
                 else:
-                    message = f"Unknown entity type: {entity_type}"
-                    st.error(message)
+                    st.error(f"Unknown entity type: {entity_type}")
                     logger.error(f"Unknown entity type: {entity_type}")
-                    st.session_state.entity_type_valid = False
-                    st.session_state.validation_messages.append(message)
                     continue  # Skip to next entity
 
                 # Handle IDs based on copy number
@@ -253,19 +241,13 @@ def main():
                     entity_id = st.text_input(f"Entity ID(s) (comma-separated)", key=f"entity_id_{i}",
                                               help="Provide entity ID(s), separated by commas if multiple.")
                     if not entity_id.strip():
-                        message = "Entity ID is required."
-                        st.error(message)
+                        st.error("Entity ID is required.")
                         logger.error("Entity ID missing.")
-                        st.session_state.entity_id_valid = False
-                        st.session_state.validation_messages.append(message)
                         continue
                     entity_ids = re.split(r"\s*,\s*", entity_id)
                     if len(entity_ids) != copy_number:
-                        message = f"Please provide {copy_number} ID(s) separated by commas."
-                        st.error(message)
+                        st.error(f"Please provide {copy_number} ID(s) separated by commas.")
                         logger.error(f"Number of IDs provided does not match copy number for Entity {i + 1}.")
-                        st.session_state.entity_ids_match_copy_number = False
-                        st.session_state.validation_messages.append(message)
                         continue
                     logger.debug(f"Entity {i + 1} IDs: {entity_ids}")
 
@@ -283,11 +265,8 @@ def main():
                         elif entity_type.startswith("Ligand"):
                             sequences.append({"ligand": sequence_entry})
                 else:
-                    message = "Copy number must be at least 1."
-                    st.error(message)
+                    st.error("Copy number must be at least 1.")
                     logger.error("Invalid copy number.")
-                    st.session_state.valid_copy_number = False
-                    st.session_state.validation_messages.append(message)
                     continue
 
         st.markdown('<div id="bonded_atom_pairs"></div>', unsafe_allow_html=True)
@@ -365,11 +344,8 @@ def main():
                 # Parse buckets
                 bucket_sizes = [int(size.strip()) for size in buckets_input.split(",") if size.strip().isdigit()]
                 if not bucket_sizes:
-                    message = "Please provide at least one valid bucket size."
-                    st.error(message)
+                    st.error("Please provide at least one valid bucket size.")
                     logger.error("No valid bucket sizes provided.")
-                    st.session_state.valid_bucket_size = False
-                    st.session_state.validation_messages.append(message)
                     st.stop()
                 logger.debug(f"Custom bucket sizes: {bucket_sizes}")
             else:
@@ -386,149 +362,135 @@ def main():
             st.success(f"JSON file saved to {json_save_path}")
             logger.info(f"JSON file saved to {json_save_path}")
         except Exception as e:
-            message = f"Error saving JSON file: {e}"
-            st.error(message)
+            st.error(f"Error saving JSON file: {e}")
             logger.error(f"Error saving JSON file: {e}")
-            st.session_state.valid_json = False
-            st.session_state.validation_messages.append(message)
 
         # Run AlphaFold 3
         if st.button("Run AlphaFold 3 Now ▶️"):
-            # Get validation messages
-            validation_messages = st.session_state.validation_messages
-            if not validation_messages:
-                st.success("Form submitted successfully!")
-                st.session_state.form_submitted = True
-                # Build the Docker command
-                docker_command = (
-                    f"docker run --rm "
-                    f"--volume {af_input_path}:/root/af_input "
-                    f"--volume {af_output_path}:/root/af_output "
-                    f"--volume {model_parameters_dir}:/root/models "
-                    f"--volume {databases_dir}:/root/public_databases "
-                    f"--gpus all "
-                    f"alphafold3 "
-                    f"python run_alphafold.py "
-                    f"--json_path=/root/af_input/fold_input.json "
-                    f"--model_dir=/root/models "
-                    f"--output_dir=/root/af_output "
-                    f"{'--run_data_pipeline' if run_data_pipeline else ''} "
-                    f"{'--run_inference' if run_inference else ''} "
-                    f"{'--buckets ' + ','.join(map(str, bucket_sizes)) if bucket_sizes else ''}"
+            # Build the Docker command
+            docker_command = (
+                f"docker run --rm "
+                f"--volume {af_input_path}:/root/af_input "
+                f"--volume {af_output_path}:/root/af_output "
+                f"--volume {model_parameters_dir}:/root/models "
+                f"--volume {databases_dir}:/root/public_databases "
+                f"--gpus all "
+                f"alphafold3 "
+                f"python run_alphafold.py "
+                f"--json_path=/root/af_input/fold_input.json "
+                f"--model_dir=/root/models "
+                f"--output_dir=/root/af_output "
+                f"{'--run_data_pipeline' if run_data_pipeline else ''} "
+                f"{'--run_inference' if run_inference else ''} "
+                f"{'--buckets ' + ','.join(map(str, bucket_sizes)) if bucket_sizes else ''}"
+            )
+
+            st.markdown("#### Docker Command:")
+            st.code(docker_command, language="bash")
+            logger.debug(f"Docker command: {docker_command}")
+
+            # Run the command and display output in a box
+            with st.spinner('AlphaFold 3 is running...'):
+                output_placeholder = st.empty()
+                output = run_alphafold(docker_command, placeholder=output_placeholder)
+
+            # Display the output in an expander box
+            st.markdown("#### Command Output:")
+            with st.expander("Show Command Output 📄", expanded=False):
+                st.text_area("Command Output", value=output, height=400)
+
+            logger.info("AlphaFold 3 execution completed.")
+
+            # Check if the output directory exists
+            job_output_folder_name = job_name.lower().replace(' ', '_')
+            output_folder_path = os.path.join(af_output_path, job_output_folder_name)
+
+            if os.path.exists(output_folder_path):
+                st.success("AlphaFold 3 execution completed successfully.")
+                st.info(f"Results are saved in: {output_folder_path}")
+                logger.info(f"Results saved in: {output_folder_path}")
+
+                # Provide download option
+                st.markdown("### Download Results 📥")
+                zip_data = compress_output_folder(output_folder_path, job_output_folder_name)
+                st.download_button(
+                    label="Download ZIP",
+                    data=zip_data,
+                    file_name=f"{job_output_folder_name}.zip",
+                    mime="application/zip"
                 )
+                logger.info("User downloaded the results ZIP file.")
 
-                st.markdown("#### Docker Command:")
-                st.code(docker_command, language="bash")
-                logger.debug(f"Docker command: {docker_command}")
+                # Visualize the results directly on the same page
+                st.markdown("### Visualize Your Results")
+                st.write("The prediction results are visualized below.")
 
-                # Run the command and display output in a box
-                with st.spinner('AlphaFold 3 is running...'):
-                    output_placeholder = st.empty()
-                    output = run_alphafold(docker_command, placeholder=output_placeholder)
+                # Get the paths to the necessary files
+                def find_file_by_suffix(directory_path, suffix):
+                    for root, dirs, files in os.walk(directory_path):
+                        for file_name in files:
+                            if file_name.endswith(suffix):
+                                return os.path.join(root, file_name)
+                    return None
 
-                # Display the output in an expander box
-                st.markdown("#### Command Output:")
-                with st.expander("Show Command Output 📄", expanded=False):
-                    st.text_area("Command Output", value=output, height=400)
+                def find_file_by_suffix_exclude_summary(directory_path, suffix, exclude_name):
+                    for root, dirs, files in os.walk(directory_path):
+                        for file_name in files:
+                            if file_name.endswith(suffix) and exclude_name not in file_name:
+                                return os.path.join(root, file_name)
+                    return None
 
-                logger.info("AlphaFold 3 execution completed.")
+                required_files = {
+                    "model.cif": find_file_by_suffix(output_folder_path, 'model.cif'),
+                    "confidences.json": find_file_by_suffix_exclude_summary(output_folder_path, 'confidences.json',
+                                                                            'summary_confidences.json'),
+                    "summary_confidences.json": find_file_by_suffix(output_folder_path, 'summary_confidences.json')
+                }
 
-                # Check if the output directory exists
-                job_output_folder_name = job_name.lower().replace(' ', '_')
-                output_folder_path = os.path.join(af_output_path, job_output_folder_name)
-
-                if os.path.exists(output_folder_path):
-                    st.success("AlphaFold 3 execution completed successfully.")
-                    st.info(f"Results are saved in: {output_folder_path}")
-                    logger.info(f"Results saved in: {output_folder_path}")
-
-                    # Provide download option
-                    st.markdown("### Download Results 📥")
-                    zip_data = compress_output_folder(output_folder_path, job_output_folder_name)
-                    st.download_button(
-                        label="Download ZIP",
-                        data=zip_data,
-                        file_name=f"{job_output_folder_name}.zip",
-                        mime="application/zip"
-                    )
-                    logger.info("User downloaded the results ZIP file.")
-
-                    # Visualize the results directly on the same page
-                    st.markdown("### Visualize Your Results")
-                    st.write("The prediction results are visualized below.")
-
-                    # Get the paths to the necessary files
-                    def find_file_by_suffix(directory_path, suffix):
-                        for root, dirs, files in os.walk(directory_path):
-                            for file_name in files:
-                                if file_name.endswith(suffix):
-                                    return os.path.join(root, file_name)
-                        return None
-
-                    def find_file_by_suffix_exclude_summary(directory_path, suffix, exclude_name):
-                        for root, dirs, files in os.walk(directory_path):
-                            for file_name in files:
-                                if file_name.endswith(suffix) and exclude_name not in file_name:
-                                    return os.path.join(root, file_name)
-                        return None
-
-                    required_files = {
-                        "model.cif": find_file_by_suffix(output_folder_path, 'model.cif'),
-                        "confidences.json": find_file_by_suffix_exclude_summary(output_folder_path, 'confidences.json',
-                                                                                'summary_confidences.json'),
-                        "summary_confidences.json": find_file_by_suffix(output_folder_path, 'summary_confidences.json')
-                    }
-
-                    missing_files = [fname for fname, fpath in required_files.items() if fpath is None]
-                    if missing_files:
-                        st.error(
-                            f"Missing files: {', '.join(missing_files)} in the output directory or its subdirectories.")
-                        logger.error(f"Missing files: {', '.join(missing_files)}")
-                    else:
-                        st.success("All required files are found.")
-                        logger.info(f"Required files found: {required_files}")
-
-                        # Load the data
-                        structure, cif_content = read_cif_file(required_files["model.cif"])
-                        residue_bfactors, ligands = extract_residue_bfactors(structure)
-                        pae_matrix, token_chain_ids = extract_pae_from_json(required_files["confidences.json"])
-                        summary_data = extract_summary_confidences(required_files["summary_confidences.json"])
-
-                        chain_ids = list(set(token_chain_ids))
-                        chain_ids.sort()  # Sort for consistency
-
-                        logger.debug("Successfully loaded data from output folder.")
-
-                        # Display the visualizations
-                        display_visualization_header()
-
-                        # Create two columns with width ratio 3:2
-                        col1, col2 = st.columns([3, 2])
-
-                        with col1:
-                            st.write("### 3D Model Visualization")
-                            if residue_bfactors or ligands:
-                                view_html = visualize_structure(residue_bfactors, ligands, cif_content)
-                                st.components.v1.html(view_html, height=600, scrolling=False)
-                            else:
-                                st.error("Failed to extract atom data.")
-                                logger.error("Failed to extract atom data.")
-
-                        with col2:
-                            # Visualize the PAE matrix
-                            visualize_pae(pae_matrix, token_chain_ids)
-
-                        # Display summary data
-                        display_summary_data(summary_data, chain_ids)
+                missing_files = [fname for fname, fpath in required_files.items() if fpath is None]
+                if missing_files:
+                    st.error(
+                        f"Missing files: {', '.join(missing_files)} in the output directory or its subdirectories.")
+                    logger.error(f"Missing files: {', '.join(missing_files)}")
                 else:
-                    st.error("AlphaFold 3 execution did not complete successfully. Please check the logs.")
-                    logger.error("AlphaFold 3 execution did not complete successfully.")
+                    st.success("All required files are found.")
+                    logger.info(f"Required files found: {required_files}")
+
+                    # Load the data
+                    structure, cif_content = read_cif_file(required_files["model.cif"])
+                    residue_bfactors, ligands = extract_residue_bfactors(structure)
+                    pae_matrix, token_chain_ids = extract_pae_from_json(required_files["confidences.json"])
+                    summary_data = extract_summary_confidences(required_files["summary_confidences.json"])
+
+                    chain_ids = list(set(token_chain_ids))
+                    chain_ids.sort()  # Sort for consistency
+
+                    logger.debug("Successfully loaded data from output folder.")
+
+                    # Display the visualizations
+                    display_visualization_header()
+
+                    # Create two columns with width ratio 3:2
+                    col1, col2 = st.columns([3, 2])
+
+                    with col1:
+                        st.write("### 3D Model Visualization")
+                        if residue_bfactors or ligands:
+                            view_html = visualize_structure(residue_bfactors, ligands, cif_content)
+                            st.components.v1.html(view_html, height=600, scrolling=False)
+                        else:
+                            st.error("Failed to extract atom data.")
+                            logger.error("Failed to extract atom data.")
+
+                    with col2:
+                        # Visualize the PAE matrix
+                        visualize_pae(pae_matrix, token_chain_ids)
+
+                    # Display summary data
+                    display_summary_data(summary_data, chain_ids)
             else:
-                st.error("Please fix the following validation errors:")
-                for message in validation_messages:
-                    st.error(f"• {message}")
-                st.session_state.form_submitted = False
-                st.session_state.validation_messages = []
+                st.error("AlphaFold 3 execution did not complete successfully. Please check the logs.")
+                logger.error("AlphaFold 3 execution did not complete successfully.")
         else:
             st.info("Click the 'Run AlphaFold 3 Now ▶️' button to execute the command.")
 
@@ -628,7 +590,7 @@ def main():
                     },
                     'AF3_INFERENCE': {
                         'slurm_partition': af3_inference_partition,
-                        'gres': f"\'{af3_inference_gpu_resources}\'",
+                        'gres': af3_inference_gpu_resources,
                         'nodes': 1,
                         'runtime': af3_inference_runtime,
                         'mem_mb': int(af3_inference_ram)
