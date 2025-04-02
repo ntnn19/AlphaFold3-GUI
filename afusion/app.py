@@ -628,7 +628,7 @@ def main():
                     },
                     'AF3_INFERENCE': {
                         'slurm_partition': af3_inference_partition,
-                        'gres': f"'{af3_inference_gpu_resources}'",
+                        'gres': f"\'{af3_inference_gpu_resources}\'",
                         'nodes': 1,
                         'runtime': af3_inference_runtime,
                         'mem_mb': int(af3_inference_ram)
