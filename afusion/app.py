@@ -523,6 +523,8 @@ def main():
                 st.error("Please fix the following validation errors:")
                 for message in validation_messages:
                     st.error(f"• {message}")
+                st.session_state.form_submitted = False
+                st.session_state.validation_messages = []
         else:
             st.info("Click the 'Run AlphaFold 3 Now ▶️' button to execute the command.")
 
