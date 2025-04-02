@@ -8,13 +8,16 @@ MODE = config.get("mode","default")
 MSA_OPTION = config.get("msa_option","auto")
 AF3_CONTAINER = config["af3_flags"]["--af3_container"]
 def get_af3_flag_value(flag, default_value):
-    return config.get('alphafold3_flags', {}).get(flag, default_value)
+    print(flag)
+    config.get('af3_flags',{})
+    return config.get('af3_flags', {}).get(flag, default_value)
 
 # Example usage: Getting flag values from YAML with fallbacks
 
 BUCKETS = get_af3_flag_value('--buckets', '256,512,768,1024,1280,1536,2048,2560,3072,3584,4096,4608,5120')
 CONFORMER_MAX_ITERATIONS = get_af3_flag_value('--conformer_max_iterations', 100)
 FLASH_ATTENTION_IMPLEMENTATION = get_af3_flag_value('--flash_attention_implementation', 'triton')
+
 GPU_DEVICE = get_af3_flag_value('--gpu_device', 0)
 HMMALIGN_BINARY_PATH = get_af3_flag_value('--hmmalign_binary_path', '/hmmer/bin/hmmalign')
 HMMBUILD_BINARY_PATH = get_af3_flag_value('--hmmbuild_binary_path', '/hmmer/bin/hmmbuild')
