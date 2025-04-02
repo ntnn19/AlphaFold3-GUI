@@ -12,7 +12,6 @@ import plotly.express as px
 import io
 import py3Dmol
 from Bio import PDB
-from watchdog.observers.fsevents2 import message
 
 # Import your modules (make sure they are correctly installed in your environment)
 from afusion.execution import run_alphafold, run_snakemake
