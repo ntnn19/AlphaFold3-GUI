@@ -168,11 +168,12 @@ def main():
         "Use this GUI to generate input JSON files and run AlphaFold 3 predictions with ease or use a snakemake workflow for structure predictions at scale. Please [install AlphaFold 3](https://github.com/google-deepmind/alphafold3/blob/main/docs/installation.md) before using.")
     # Initialize session state
     logger.info("# Initialize validation summary")
+    logger.info(f"'form_submitted' not in st.session_state = {'form_submitted' not in st.session_state}")
+    logger.info(f"'validation_messages' not in st.session_state = {'validation_messages' not in st.session_state}")
+
     if 'form_submitted' not in st.session_state:
-        logger.info(f"'form_submitted' not in st.session_state = {'form_submitted' not in st.session_state}")
         st.session_state.form_submitted = False    # Initialize validation summary
     if 'validation_messages' not in st.session_state:
-        logger.info(f"'validation_messages' not in st.session_state = {'validation_messages' not in st.session_state}")
         st.session_state.validation_messages = []
     scale_flg = st.radio("Select run mode:", ["Interactive", "Automated Workflow"], index=None)
     if scale_flg == "Interactive":
