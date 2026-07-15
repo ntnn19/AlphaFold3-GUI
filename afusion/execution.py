@@ -42,7 +42,7 @@ def build_singularity_command(input_json_path, output_dir, use_gpu=True):
     """
     # Build the base Singularity command
     singularity_command = (
-        f"singularity exec {SINGULARITY_CONTAINER} python run_alphafold.py"
+        f"singularity exec {SINGULARITY_CONTAINER} python /app/alphafold/run_alphafold.py"
     )
 
     # Add the basic required parameters
