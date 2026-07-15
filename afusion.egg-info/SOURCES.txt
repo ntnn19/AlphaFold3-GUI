@@ -11,6 +11,7 @@ afusion/api.py
 afusion/app.py
 afusion/bonds.py
 afusion/cli.py
+afusion/config.py
 afusion/execution.py
 afusion/install.py
 afusion/sequence_input.py
@@ -22,8 +23,6 @@ afusion.egg-info/dependency_links.txt
 afusion.egg-info/entry_points.txt
 afusion.egg-info/requires.txt
 afusion.egg-info/top_level.txt
-afusion/__pycache__/__init__.cpython-310.pyc
-afusion/__pycache__/cli.cpython-310.pyc
 docs/Makefile
 docs/make.bat
 docs/requirements.txt

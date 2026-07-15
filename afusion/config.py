@@ -35,5 +35,5 @@ DEFAULT_ALPHAFOLDARAMS = {
 }
 
 # Default input/output paths
-DEFAULT_AF_INPUT_PATH = "/tmp/af_input"
-DEFAULT_AF_OUTPUT_PATH = "/tmp/af_output"
+DEFAULT_AF_INPUT_PATH = "/data/af3_server/runs"
+DEFAULT_AF_OUTPUT_PATH = "/data/af3_server/runs"

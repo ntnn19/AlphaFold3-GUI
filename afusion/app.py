@@ -14,7 +14,7 @@ import py3Dmol
 from Bio import PDB
 
 # Import your modules (make sure they are correctly installed in your environment)
-from afusion.execution import run_alphafold
+from afusion.execution import build_singularity_command, run_alphafold
 from afusion.sequence_input import (
     collect_protein_sequence_data,
     collect_rna_sequence_data,
@@ -23,6 +23,14 @@ from afusion.sequence_input import (
 )
 from afusion.bonds import handle_bond
 from afusion.utils import log_to_ga, compress_output_folder
+from afusion.config import (
+    DEFAULT_AF_INPUT_PATH,
+    DEFAULT_AF_OUTPUT_PATH,
+    DEFAULT_DB_DIR,
+    DEFAULT_MODEL_DIR,
+    DEFAULT_ALPHAFOLDARAMS,
+    SINGULARITY_CONTAINER,
+)
 
 # Import visualization functions
 from afusion.visualization import (
@@ -285,25 +293,37 @@ def main():
     st.header("📄 Generated JSON Content")
     st.code(json_output, language="json")
 
+    # Hidden constants - using Singularity instead of Docker
+    af_input_path = DEFAULT_AF_INPUT_PATH
+    af_output_path = DEFAULT_AF_OUTPUT_PATH
+
     st.markdown('<div id="execution_settings"></div>', unsafe_allow_html=True)
     st.header("⚙️ AlphaFold 3 Execution Settings")
     with st.expander("Configure Execution Settings", expanded=True):
-        # Paths for execution
-        af_input_path = st.text_input("AF Input Path", value=os.path.expanduser("~/af_input"), help="Path to AlphaFold input directory.")
-        af_output_path = st.text_input("AF Output Path", value=os.path.expanduser("~/af_output"), help="Path to AlphaFold output directory.")
-        model_parameters_dir = st.text_input("Model Parameters Directory", value="/path/to/models", help="Path to model parameters directory.")
-        databases_dir = st.text_input("Databases Directory", value="/path/to/databases", help="Path to databases directory.")
-
-        logger.debug(f"Execution settings: af_input_path={af_input_path}, af_output_path={af_output_path}, model_parameters_dir={model_parameters_dir}, databases_dir={databases_dir}")
+        # Show the constant paths (read-only)
+        st.info("Using Singularity container with fixed parameters:")
+        st.text(
+            f"Container: {SINGULARITY_CONTAINER}"
+        )
+        st.text(f"Input Path: {af_input_path}")
+        st.text(f"Output Path: {af_output_path}")
+        st.text(f"Model Parameters: {DEFAULT_MODEL_DIR}")
+        st.text(f"Databases: {DEFAULT_DB_DIR}")
 
         # Additional options
-        run_data_pipeline = st.checkbox("Run Data Pipeline (CPU only, time-consuming)", value=True)
+        run_data_pipeline = st.checkbox(
+            "Run Data Pipeline (CPU only, time-consuming)", value=True
+        )
         run_inference = st.checkbox("Run Inference (requires GPU)", value=True)
 
-        logger.info(f"Run data pipeline: {run_data_pipeline}, Run inference: {run_inference}")
+        logger.info(
+            f"Run data pipeline: {run_data_pipeline}, Run inference: {run_inference}"
+        )
 
         # Bucket Sizes Configuration
-        use_custom_buckets = st.checkbox("Specify Custom Compilation Buckets", value=False)
+        use_custom_buckets = st.checkbox(
+            "Specify Custom Compilation Buckets", value=False
+        )
         if use_custom_buckets:
             buckets_input = st.text_input(
                 "Bucket Sizes (comma-separated)",
@@ -336,32 +356,36 @@ def main():
 
     # Run AlphaFold 3
     if st.button("Run AlphaFold 3 Now ▶️"):
-        # Build the Docker command
-        docker_command = (
-            f"docker run --rm "
-            f"--volume {af_input_path}:/root/af_input "
-            f"--volume {af_output_path}:/root/af_output "
-            f"--volume {model_parameters_dir}:/root/models "
-            f"--volume {databases_dir}:/root/public_databases "
-            f"--gpus all "
-            f"alphafold3 "
-            f"python run_alphafold.py "
-            f"--json_path=/root/af_input/fold_input.json "
-            f"--model_dir=/root/models "
-            f"--output_dir=/root/af_output "
-            f"{'--run_data_pipeline' if run_data_pipeline else ''} "
-            f"{'--run_inference' if run_inference else ''} "
-            f"{'--buckets ' + ','.join(map(str, bucket_sizes)) if bucket_sizes else ''}"
-        )
+        # Build the Singularity command with all the parameters from the server config
+        try:
+            # Build the base Singularity command
+            singularity_command = build_singularity_command(
+                json_save_path,  # Use the actual path to the JSON file
+                af_output_path,
+            )
 
-        st.markdown("#### Docker Command:")
-        st.code(docker_command, language="bash")
-        logger.debug(f"Docker command: {docker_command}")
+            # Add the pipeline and inference flags
+            if run_data_pipeline:
+                singularity_command += " --run_data_pipeline"
+            if run_inference:
+                singularity_command += " --run_inference"
+            if bucket_sizes:
+                singularity_command += f" --buckets={','.join(map(str, bucket_sizes))}"
 
-        # Run the command and display output in a box
-        with st.spinner('AlphaFold 3 is running...'):
-            output_placeholder = st.empty()
-            output = run_alphafold(docker_command, placeholder=output_placeholder)
+            st.markdown("#### Singularity Command:")
+            st.code(singularity_command, language="bash")
+            logger.debug(f"Singularity command: {singularity_command}")
+
+            # Run the command and display output in a box
+            with st.spinner("AlphaFold 3 is running..."):
+                output_placeholder = st.empty()
+                output = run_alphafold(
+                    singularity_command, placeholder=output_placeholder
+                )
+        except Exception as e:
+            st.error(f"Error building or running Singularity command: {e}")
+            logger.error(f"Error building singularity command: {e}")
+            st.stop()
 
         # Display the output in an expander box
         st.markdown("#### Command Output:")

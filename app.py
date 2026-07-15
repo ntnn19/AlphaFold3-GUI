@@ -3,7 +3,7 @@
 import json
 import os
 import re
-
+import uuid
 import streamlit as st
 from loguru import logger
 
@@ -278,8 +278,10 @@ def main():
     st.code(json_output, language="json")
 
     # Hidden constants - using Singularity instead of Docker
-    af_input_path = DEFAULT_AF_INPUT_PATH
-    af_output_path = DEFAULT_AF_OUTPUT_PATH
+    job_id = str(uuid.uuid4())
+
+    af_input_path = os.path.join(DEFAULT_AF_INPUT_PATH,job_id)
+    af_output_path = os.path.join(DEFAULT_AF_OUTPUT_PATH,job_id)
 
     st.markdown('<div id="execution_settings"></div>', unsafe_allow_html=True)
     st.header("⚙️ AlphaFold 3 Execution Settings")
