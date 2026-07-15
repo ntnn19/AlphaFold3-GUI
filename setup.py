@@ -20,7 +20,7 @@ setup(
         'biopython',
         'plotly',
         'scipy',
-        'stl',
+        'numpy-stl',  # Note: imported as 'stl' but installed as 'numpy-stl'
         'requests',
     ],
     entry_points={
