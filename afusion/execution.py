@@ -2,7 +2,7 @@
 
 import subprocess
 
-from config import (
+from afusion.config import (
     SINGULARITY_CONTAINER,
     DEFAULT_ALPHAFOLDARAMS,
     DEFAULT_AF_INPUT_PATH,
