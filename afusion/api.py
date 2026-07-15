@@ -1,16 +1,24 @@
 # afusion/api.py
 
-import os
 import json
+import os
 import re
 import uuid
+
 import pandas as pd
-from afusion.execution import run_alphafold
-from afusion.utils import compress_output_folder
+from loguru import logger
+from afusion.config import (
+    DEFAULT_AF_INPUT_PATH,
+    DEFAULT_AF_OUTPUT_PATH,
+    DEFAULT_MODEL_DIR,
+    DEFAULT_DB_DIR,
+)
 from loguru import logger
 
 
-def create_batch_task(job_name, entities, model_seeds, bonded_atom_pairs=None, user_ccd=None):
+def create_batch_task(
+    job_name, entities, model_seeds, bonded_atom_pairs=None, user_ccd=None
+):
     """
     Creates a batch task dictionary for a single prediction.
 
@@ -33,21 +41,21 @@ def create_batch_task(job_name, entities, model_seeds, bonded_atom_pairs=None, u
     """
     sequences = []
     for entity in entities:
-        entity_type = entity['type']
-        sequence_data = entity['sequence_data']
-        entity_id = entity['id']
+        entity_type = entity["type"]
+        sequence_data = entity["sequence_data"]
+        entity_id = entity["id"]
 
         sequence_entry = sequence_data.copy()
-        sequence_entry['id'] = entity_id
+        sequence_entry["id"] = entity_id
 
-        if entity_type == 'protein':
-            sequences.append({'protein': sequence_entry})
-        elif entity_type == 'rna':
-            sequences.append({'rna': sequence_entry})
-        elif entity_type == 'dna':
-            sequences.append({'dna': sequence_entry})
-        elif entity_type == 'ligand':
-            sequences.append({'ligand': sequence_entry})
+        if entity_type == "protein":
+            sequences.append({"protein": sequence_entry})
+        elif entity_type == "rna":
+            sequences.append({"rna": sequence_entry})
+        elif entity_type == "dna":
+            sequences.append({"dna": sequence_entry})
+        elif entity_type == "ligand":
+            sequences.append({"ligand": sequence_entry})
         else:
             logger.error(f"Unknown entity type: {entity_type}")
             continue
@@ -57,7 +65,7 @@ def create_batch_task(job_name, entities, model_seeds, bonded_atom_pairs=None, u
         "modelSeeds": model_seeds,
         "sequences": sequences,
         "dialect": "alphafold3",
-        "version": 1
+        "version": 1,
     }
 
     if bonded_atom_pairs:
@@ -104,14 +112,14 @@ def run_batch_predictions(
     """
     results = []
     for task in tasks:
-        job_name = task['name']
+        job_name = task["name"]
         job_folder_name = job_name
-        
+
         input_path = os.path.join(af_input_base_path, job_folder_name)
         output_path = af_output_base_path
-        
+
         os.makedirs(input_path, exist_ok=True)
-        os.makedirs(output_path, exist_ok=True) 
+        os.makedirs(output_path, exist_ok=True)
 
         json_save_path = os.path.join(input_path, "fold_input.json")
         try:
@@ -120,60 +128,75 @@ def run_batch_predictions(
             logger.info(f"JSON file saved for job '{job_name}' at {json_save_path}")
         except Exception as e:
             logger.error(f"Error saving JSON file for job '{job_name}': {e}")
+            results.append(
+                {
+                    "job_name": job_name,
+                    "output_folder": output_path,
+                    "status": f"Failed to save JSON: {e}",
+                }
+            )
+            continue
+
+        # Build the Singularity command with all the parameters from the server config
+        try:
+            # Build the base Singularity command
+            singularity_command = build_singularity_command(
+                os.path.join(input_path, "fold_input.json"),  # Use the actual path to the JSON file
+                output_path
+            )
+
+            # Add the pipeline and inference flags
+            if run_data_pipeline:
+                singularity_command += " --run_data_pipeline"
+            if run_inference:
+                singularity_command += " --run_inference"
+            if bucket_sizes:
+                singularity_command += f" --buckets={','.join(map(str, bucket_sizes))}"
+        except Exception as e:
+            logger.error(f"Error building Singularity command for job '{job_name}': {e}")
             results.append({
                 'job_name': job_name,
                 'output_folder': output_path,
-                'status': f'Failed to save JSON: {e}'
+                'status': f'Failed to build Singularity command: {e}'
             })
             continue
-
-        # Build the Docker command
-        docker_command = (
-            f"docker run --rm "
-            f"--volume {input_path}:/root/af_input "
-            f"--volume {output_path}:/root/af_output "
-            f"--volume {model_parameters_dir}:/root/models "
-            f"--volume {databases_dir}:/root/public_databases "
-            f"--gpus all "
-            f"alphafold3 "
-            f"python run_alphafold.py "
-            f"--json_path=/root/af_input/fold_input.json "
-            f"--model_dir=/root/models "
-            f"--output_dir=/root/af_output "
-            f"{'--run_data_pipeline' if run_data_pipeline else ''} "
-            f"{'--run_inference' if run_inference else ''} "
-            f"{'--buckets ' + ','.join(map(str, bucket_sizes)) if bucket_sizes else ''}"
-        )
 
         logger.debug(f"Running Docker command for job '{job_name}': {docker_command}")
 
         # Run AlphaFold
         try:
-            output = run_alphafold(docker_command)
+            output = run_alphafold(singularity_command)
             logger.info(f"AlphaFold execution completed for job '{job_name}'.")
 
             # Check if the output directory exists
             expected_output_folder = os.path.join(af_output_base_path, job_folder_name)
             if os.path.exists(expected_output_folder):
                 logger.info(f"Results saved in: {expected_output_folder}")
-                status = 'Success'
+                status = "Success"
             else:
-                logger.error(f"Output folder '{expected_output_folder}' not found for job '{job_name}'.")
-                status = 'Failed'
+                logger.error(
+                    f"Output folder '{expected_output_folder}' not found for job '{job_name}'."
+                )
+                status = "Failed"
         except Exception as e:
             logger.error(f"Error running AlphaFold for job '{job_name}': {e}")
-            status = f'Failed to run AlphaFold: {e}'
+            status = f"Failed to run AlphaFold: {e}"
 
-        results.append({
-            'job_name': job_name,
-            'output_folder': output_path,
-            'status': status
-        })
+        results.append(
+            {"job_name": job_name, "output_folder": output_path, "status": status}
+        )
 
     return results
 
 
-def create_protein_sequence_data(sequence, modifications=None, msa_option='auto', unpaired_msa=None, paired_msa=None, templates=None):
+def create_protein_sequence_data(
+    sequence,
+    modifications=None,
+    msa_option="auto",
+    unpaired_msa=None,
+    paired_msa=None,
+    templates=None,
+):
     """
     Creates sequence data for a protein entity.
 
@@ -192,20 +215,18 @@ def create_protein_sequence_data(sequence, modifications=None, msa_option='auto'
     :return: Sequence data dictionary.
     :rtype: dict
     """
-    protein_entry = {
-        "sequence": sequence
-    }
+    protein_entry = {"sequence": sequence}
     if modifications:
         protein_entry["modifications"] = modifications
-    if msa_option == 'auto':
+    if msa_option == "auto":
         protein_entry["unpairedMsa"] = None
         protein_entry["pairedMsa"] = None
         protein_entry["templates"] = []
-    elif msa_option == 'none':
+    elif msa_option == "none":
         protein_entry["unpairedMsa"] = ""
         protein_entry["pairedMsa"] = ""
         protein_entry["templates"] = []
-    elif msa_option == 'upload':
+    elif msa_option == "upload":
         protein_entry["unpairedMsa"] = unpaired_msa or ""
         protein_entry["pairedMsa"] = paired_msa or ""
         protein_entry["templates"] = templates or []
@@ -214,7 +235,9 @@ def create_protein_sequence_data(sequence, modifications=None, msa_option='auto'
     return protein_entry
 
 
-def create_rna_sequence_data(sequence, modifications=None, msa_option='auto', unpaired_msa=None):
+def create_rna_sequence_data(
+    sequence, modifications=None, msa_option="auto", unpaired_msa=None
+):
     """
     Creates sequence data for an RNA entity.
 
@@ -229,16 +252,14 @@ def create_rna_sequence_data(sequence, modifications=None, msa_option='auto', un
     :return: Sequence data dictionary.
     :rtype: dict
     """
-    rna_entry = {
-        "sequence": sequence
-    }
+    rna_entry = {"sequence": sequence}
     if modifications:
         rna_entry["modifications"] = modifications
-    if msa_option == 'auto':
+    if msa_option == "auto":
         rna_entry["unpairedMsa"] = None
-    elif msa_option == 'none':
+    elif msa_option == "none":
         rna_entry["unpairedMsa"] = ""
-    elif msa_option == 'upload':
+    elif msa_option == "upload":
         rna_entry["unpairedMsa"] = unpaired_msa or ""
     else:
         logger.error(f"Invalid msa_option: {msa_option}")
@@ -256,9 +277,7 @@ def create_dna_sequence_data(sequence, modifications=None):
     :return: Sequence data dictionary.
     :rtype: dict
     """
-    dna_entry = {
-        "sequence": sequence
-    }
+    dna_entry = {"sequence": sequence}
     if modifications:
         dna_entry["modifications"] = modifications
     return dna_entry
@@ -279,14 +298,10 @@ def create_ligand_sequence_data(ccd_codes=None, smiles=None):
         logger.error("Please provide only one of CCD Codes or SMILES String.")
         return {}
     elif ccd_codes:
-        ligand_entry = {
-            "ccdCodes": ccd_codes
-        }
+        ligand_entry = {"ccdCodes": ccd_codes}
         return ligand_entry
     elif smiles:
-        ligand_entry = {
-            "smiles": smiles
-        }
+        ligand_entry = {"smiles": smiles}
         return ligand_entry
     else:
         logger.error("Ligand requires either CCD Codes or SMILES String.")
@@ -316,7 +331,7 @@ def create_tasks_from_dataframe(df):
     :rtype: list of dict
     """
     tasks = []
-    grouped = df.groupby('job_name')
+    grouped = df.groupby("job_name")
     for job_name, group in grouped:
         entities = []
         model_seeds = None
@@ -324,63 +339,59 @@ def create_tasks_from_dataframe(df):
         user_ccd = None
 
         for _, row in group.iterrows():
-            entity_type = row['type']
-            entity_id = row['id']
-            sequence = row.get('sequence', '')
+            entity_type = row["type"]
+            entity_id = row["id"]
+            sequence = row.get("sequence", "")
 
             # Parse optional fields
-            modifications = parse_json_field(row.get('modifications'))
-            msa_option = row.get('msa_option', 'auto')
-            unpaired_msa = row.get('unpaired_msa')
-            paired_msa = row.get('paired_msa')
-            templates = parse_json_field(row.get('templates'))
+            modifications = parse_json_field(row.get("modifications"))
+            msa_option = row.get("msa_option", "auto")
+            unpaired_msa = row.get("unpaired_msa")
+            paired_msa = row.get("paired_msa")
+            templates = parse_json_field(row.get("templates"))
 
             # Create sequence data based on entity type
-            if entity_type == 'protein':
+            if entity_type == "protein":
                 sequence_data = create_protein_sequence_data(
                     sequence=sequence,
                     modifications=modifications,
                     msa_option=msa_option,
                     unpaired_msa=unpaired_msa,
                     paired_msa=paired_msa,
-                    templates=templates
+                    templates=templates,
                 )
-            elif entity_type == 'rna':
+            elif entity_type == "rna":
                 sequence_data = create_rna_sequence_data(
                     sequence=sequence,
                     modifications=modifications,
                     msa_option=msa_option,
-                    unpaired_msa=unpaired_msa
+                    unpaired_msa=unpaired_msa,
                 )
-            elif entity_type == 'dna':
+            elif entity_type == "dna":
                 sequence_data = create_dna_sequence_data(
-                    sequence=sequence,
-                    modifications=modifications
+                    sequence=sequence, modifications=modifications
                 )
-            elif entity_type == 'ligand':
-                ccd_codes = parse_list_field(row.get('ccd_codes'))
-                smiles = row.get('smiles')
+            elif entity_type == "ligand":
+                ccd_codes = parse_list_field(row.get("ccd_codes"))
+                smiles = row.get("smiles")
                 sequence_data = create_ligand_sequence_data(
-                    ccd_codes=ccd_codes,
-                    smiles=smiles
+                    ccd_codes=ccd_codes, smiles=smiles
                 )
             else:
                 logger.error(f"Unknown entity type: {entity_type}")
                 continue
 
-            entities.append({
-                'type': entity_type,
-                'id': entity_id,
-                'sequence_data': sequence_data
-            })
+            entities.append(
+                {"type": entity_type, "id": entity_id, "sequence_data": sequence_data}
+            )
 
             # Get job-level parameters (assuming they are the same for all entities in the group)
-            if model_seeds is None and pd.notna(row.get('model_seeds')):
-                model_seeds = parse_list_field(row.get('model_seeds'), data_type=int)
-            if bonded_atom_pairs is None and pd.notna(row.get('bonded_atom_pairs')):
-                bonded_atom_pairs = parse_json_field(row.get('bonded_atom_pairs'))
-            if user_ccd is None and pd.notna(row.get('user_ccd')):
-                user_ccd = row.get('user_ccd')
+            if model_seeds is None and pd.notna(row.get("model_seeds")):
+                model_seeds = parse_list_field(row.get("model_seeds"), data_type=int)
+            if bonded_atom_pairs is None and pd.notna(row.get("bonded_atom_pairs")):
+                bonded_atom_pairs = parse_json_field(row.get("bonded_atom_pairs"))
+            if user_ccd is None and pd.notna(row.get("user_ccd")):
+                user_ccd = row.get("user_ccd")
 
         if model_seeds is None:
             model_seeds = [1]  # Default seed if not provided
@@ -390,7 +401,7 @@ def create_tasks_from_dataframe(df):
             entities=entities,
             model_seeds=model_seeds,
             bonded_atom_pairs=bonded_atom_pairs,
-            user_ccd=user_ccd
+            user_ccd=user_ccd,
         )
         tasks.append(task)
     return tasks
@@ -407,13 +418,14 @@ def parse_json_field(value):
     :return: Parsed Python object or None.
     :rtype: object or None
     """
-    if pd.isna(value) or value == '':
+    if pd.isna(value) or value == "":
         return None
     try:
         return json.loads(value)
     except json.JSONDecodeError as e:
         logger.error(f"JSON decode error: {e}")
         return None
+
 
 def parse_list_field(value, data_type=str):
     """
@@ -428,7 +440,13 @@ def parse_list_field(value, data_type=str):
     :return: List of items converted to data_type, or None.
     :rtype: list or None
     """
+    if pd.isna(value) or value == "":
+        return None
+    return [data_type(item.strip()) for item in value.split(",") if item.strip()]
+    :type data_type: type
+    :return: List of items converted to data_type, or None.
+    :rtype: list or None
+    """
     if pd.isna(value) or value == '':
         return None
     return [data_type(item.strip()) for item in value.split(',') if item.strip()]
-
