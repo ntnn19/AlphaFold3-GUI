@@ -1,6 +1,7 @@
 # afusion/execution.py
 
 import subprocess
+from loguru import logger
 
 from afusion.config import (
     SINGULARITY_CONTAINER,
