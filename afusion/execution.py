@@ -42,8 +42,10 @@ def build_singularity_command(input_json_path, output_dir, use_gpu=True):
     :return: Singularity command string
     """
     # Build the base Singularity command
+    # 
+    
     singularity_command = (
-        f"singularity --bind {output_dir}:{output_dir} --bind {DEFAULT_ALPHAFOLDARAMS['db_dir']}:{DEFAULT_ALPHAFOLDARAMS['db_dir']} --bind {DEFAULT_ALPHAFOLDARAMS['model_dir']}:{DEFAULT_ALPHAFOLDARAMS['model_dir']} exec {SINGULARITY_CONTAINER} python /app/alphafold/run_alphafold.py"
+        f"singularity exec --bind {output_dir}:{output_dir} --bind {DEFAULT_ALPHAFOLDARAMS['db_dir']}:{DEFAULT_ALPHAFOLDARAMS['db_dir']} --bind {DEFAULT_ALPHAFOLDARAMS['model_dir']}:{DEFAULT_ALPHAFOLDARAMS['model_dir']}  {SINGULARITY_CONTAINER} python /app/alphafold/run_alphafold.py"
     )
 
     # Add the basic required parameters
@@ -63,8 +65,6 @@ def build_singularity_command(input_json_path, output_dir, use_gpu=True):
     if DEFAULT_ALPHAFOLDARAMS.get('force_output_dir', False):
         singularity_command += " --force_output_dir"
 
-    # Add GPU flag if needed
-    if use_gpu:
-        singularity_command += " --nv"
+
 
     return singularity_command
