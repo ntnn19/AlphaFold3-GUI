@@ -8,7 +8,7 @@ setup(
     description='AFusion: AlphaFold 3 GUI & Toolkit with Visualization',
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/Hanziwww/AlphaFold3-GUI',
+    url='https://github.com/ntnn19/AlphaFold3-GUI',
     packages=find_packages(include=['afusion', 'afusion.*']),
     include_package_data=True,
     install_requires=[
