@@ -19,6 +19,9 @@ setup(
         'py3Dmol',
         'biopython',
         'plotly',
+        'scipy',
+        'stl',
+        'requests',
     ],
     entry_points={
         'console_scripts': [
