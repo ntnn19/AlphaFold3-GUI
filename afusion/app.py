@@ -177,9 +177,9 @@ def main():
     st.markdown('<div id="job_settings"></div>', unsafe_allow_html=True)
     st.header("📝 Job Settings")
     with st.expander("Configure Job Settings", expanded=True):
-        job_name = st.text_input("Job Name", value="My AlphaFold Job", help="Enter a descriptive name for your job.")
+        job_name = st.text_input("Job Name", help="Enter a descriptive name for your job.")
         logger.info(f"Job name set to: {job_name}")
-        model_seeds = st.text_input("Model Seeds (comma-separated)", value="1,2,3", help="Provide integer seeds separated by commas.")
+        model_seeds = st.text_input("Model Seeds (comma-separated)", help="Provide integer seeds, separated by commas if multiple.")
         logger.debug(f"Model seeds input: {model_seeds}")
         model_seeds_list = [int(seed.strip()) for seed in model_seeds.split(",") if seed.strip().isdigit()]
         if not model_seeds_list:
@@ -191,7 +191,7 @@ def main():
     st.markdown('<div id="sequences"></div>', unsafe_allow_html=True)
     st.header("📄 Sequences")
     sequences = []
-    num_entities = st.number_input("Number of Entities", min_value=1, step=1, value=1, help="Select the number of entities you want to add.")
+    num_entities = st.number_input("Number of Entities", min_value=1, step=1, help="Select the number of entities you want to add.")
     logger.info(f"Number of entities set to: {num_entities}")
 
     for i in range(int(num_entities)):
@@ -200,7 +200,7 @@ def main():
             entity_type = st.selectbox(f"Select Entity Type", ["Protein 🧬", "RNA 🧫", "DNA 🧬", "Ligand 💊"], key=f"entity_type_{i}")
             logger.info(f"Entity {i+1} type: {entity_type}")
 
-            copy_number = st.number_input(f"Copy Number", min_value=1, step=1, value=1, key=f"copy_number_{i}", help="Specify the number of copies of this sequence.")
+            copy_number = st.number_input(f"Copy Number", min_value=1, step=1, key=f"copy_number_{i}", help="Specify the number of copies of this sequence.")
             logger.info(f"Entity {i+1} copy number: {copy_number}")
 
             # Collect sequence data
