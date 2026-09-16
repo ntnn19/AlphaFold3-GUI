@@ -1,6 +1,8 @@
 # afusion/execution.py
 
 import subprocess
+import tempfile
+import os
 from loguru import logger
 
 from afusion.config import (
@@ -15,21 +17,59 @@ def run_alphafold(command, placeholder=None):
     """
     Runs the AlphaFold command (Docker or Singularity) and captures output.
     Uses placeholder to update output in real-time if provided.
+    Submits the command to SLURM via sbatch instead of using subprocess.
     """
-    process = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True
-    )
-    output_lines = []
-    for line in iter(process.stdout.readline, ""):
-        if line:
-            output_lines.append(line)
-            logger.debug(line.strip())
-            # Update placeholder if provided
-            if placeholder is not None:
-                placeholder.markdown(f"```\n{''.join(output_lines)}\n```")
-    process.stdout.close()
-    process.wait()
-    return "".join(output_lines)
+    # Create a temporary SLURM script
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
+        slurm_script_path = f.name
+
+        # Write SLURM script content
+        f.write("#!/bin/bash\n")
+        f.write("#SBATCH --job-name=alphafold\n")
+        f.write("#SBATCH --output=slurm_output.log\n")
+        f.write("#SBATCH --error=slurm_error.log\n")
+        f.write("#SBATCH --nodes=1\n")
+        f.write("#SBATCH --ntasks=1\n")
+        f.write("#SBATCH --time=24:00:00\n")
+        f.write("#SBATCH --partition=vds\n")
+        f.write("#SBATCH --mem=500G\n")
+        f.write("#SBATCH --nodelist=cssblivuke105\n")
+        f.write("#SBATCH --gres=gpu:1\n")
+        f.write("\n")
+        f.write(f"{command}\n")
+
+    try:
+        # Make the script executable
+        os.chmod(slurm_script_path, 0o755)
+
+        # Submit the job to SLURM
+        sbatch_command = f"sbatch {slurm_script_path}"
+        process = subprocess.Popen(
+            sbatch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True
+        )
+
+        output_lines = []
+        for line in iter(process.stdout.readline, ""):
+            if line:
+                output_lines.append(line)
+                logger.debug(line.strip())
+                # Update placeholder if provided
+                if placeholder is not None:
+                    placeholder.markdown(f"```\n{''.join(output_lines)}\n```")
+
+        process.stdout.close()
+        process.wait()
+
+        # Get the job ID for monitoring
+        result = "".join(output_lines)
+
+        return result
+    finally:
+        # Clean up the temporary script
+        try:
+            os.unlink(slurm_script_path)
+        except:
+            pass
 
 
 def build_singularity_command(input_json_path, output_dir, use_gpu=True):
@@ -47,7 +87,7 @@ def build_singularity_command(input_json_path, output_dir, use_gpu=True):
         nv_flag = " --nv"
     else:
         nv_flag = ""
-        
+
     singularity_command = (
         f"singularity exec {nv_flag} --bind {output_dir}:{output_dir} --bind {DEFAULT_ALPHAFOLDARAMS['db_dir']}:{DEFAULT_ALPHAFOLDARAMS['db_dir']} --bind {DEFAULT_ALPHAFOLDARAMS['model_dir']}:{DEFAULT_ALPHAFOLDARAMS['model_dir']}  {SINGULARITY_CONTAINER} python /app/alphafold/run_alphafold.py"
     )
