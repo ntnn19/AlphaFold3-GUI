@@ -281,6 +281,9 @@ def display_summary_data(summary_data, chain_ids):
     # Display chain-level metrics
     for key, metrics in chain_metrics.items():
         st.write(f"#### {key}")
+        if metrics is None:
+            st.warning("No data available for this metric")
+            continue
         df = pd.DataFrame.from_dict(metrics, orient='index', columns=[key])
         # Format numbers to two decimal places
         df_style = df.style.format("{:.2f}").set_table_styles(
@@ -298,8 +301,8 @@ def display_summary_data(summary_data, chain_ids):
             st.write(f"#### {key}")
             if len(pair_metrics) == len(chain_ids):
                 df = pd.DataFrame(pair_metrics, index=chain_ids, columns=chain_ids)
-                # Format numbers to two decimal places
-                df_style = df.style.format("{:.2f}").set_table_styles(
+                # Format numbers to two decimal places, handle null values
+                df_style = df.style.format("{:.2f}", na_rep="N/A").set_table_styles(
                     [{'selector': 'th, td', 'props': [('border', '1px solid black')]}]
                 ).set_properties(**{'text-align': 'center'})
                 # Create two columns
@@ -315,7 +318,7 @@ def display_summary_data(summary_data, chain_ids):
                         x=chain_ids,
                         y=chain_ids,
                         color_continuous_scale='Viridis',
-                        text_auto=".2f",
+                        text_auto=True,
                         labels={'x': 'Chain', 'y': 'Chain', 'color': key}
                     )
                     fig.update_layout(autosize=True)
@@ -328,8 +331,8 @@ def display_summary_data(summary_data, chain_ids):
     if other_metrics:
         st.write("#### Other Metrics")
         df = pd.DataFrame(list(other_metrics.items()), columns=['Metric', 'Value'])
-        # Format 'Value' column to two decimal places if numeric
-        df['Value'] = df['Value'].apply(lambda x: f"{x:.2f}" if isinstance(x, (int, float)) else x)
+        # Format 'Value' column to two decimal places if numeric, handle null values
+        df['Value'] = df['Value'].apply(lambda x: f"{x:.2f}" if isinstance(x, (int, float)) else str(x) if x is not None else "N/A")
         df_style = df.style.set_table_styles(
             [{'selector': 'th, td', 'props': [('border', '1px solid black')]}]
         ).set_properties(**{'text-align': 'center'})
