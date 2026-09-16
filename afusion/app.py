@@ -344,20 +344,20 @@ def main():
 
     st.markdown('<div id="run_alphafold"></div>', unsafe_allow_html=True)
     st.header("🚀 Run AlphaFold 3")
-    # Save JSON to file
-    json_save_path = os.path.join(af_input_path, "fold_input.json")
-    try:
-        os.makedirs(af_input_path, exist_ok=True)
-        with open(json_save_path, "w") as json_file:
-            json.dump(alphafold_input, json_file, indent=2)
-        st.success(f"JSON file saved to {json_save_path}")
-        logger.info(f"JSON file saved to {json_save_path}")
-    except Exception as e:
-        st.error(f"Error saving JSON file: {e}")
-        logger.error(f"Error saving JSON file: {e}")
 
     # Run AlphaFold 3
     if st.button("Run AlphaFold 3 Now ▶️"):
+        # Save JSON to file
+        json_save_path = os.path.join(af_input_path, "fold_input.json")
+        try:
+            os.makedirs(af_input_path, exist_ok=True)
+            with open(json_save_path, "w") as json_file:
+                json.dump(alphafold_input, json_file, indent=2)
+            st.success(f"JSON file saved to {json_save_path}")
+            logger.info(f"JSON file saved to {json_save_path}")
+        except Exception as e:
+            st.error(f"Error saving JSON file: {e}")
+            logger.error(f"Error saving JSON file: {e}")
         # Build the Singularity command with all the parameters from the server config
         try:
             # Build the base Singularity command
@@ -427,7 +427,7 @@ def main():
                         if file_name.endswith(suffix):
                             return os.path.join(root, file_name)
                 return None
-            
+
             def find_file_by_suffix_exclude_summary(directory_path, suffix, exclude_name):
                 for root, dirs, files in os.walk(directory_path):
                     for file_name in files:
@@ -454,7 +454,7 @@ def main():
                 residue_bfactors, ligands = extract_residue_bfactors(structure)
                 pae_matrix, token_chain_ids = extract_pae_from_json(required_files["confidences.json"])
                 summary_data = extract_summary_confidences(required_files["summary_confidences.json"])
-                
+
                 chain_ids = list(set(token_chain_ids))
                 chain_ids.sort()  # Sort for consistency
 

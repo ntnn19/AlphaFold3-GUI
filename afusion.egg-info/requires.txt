@@ -1,10 +1,10 @@
-biopython
+streamlit
+pandas
 loguru
 numpy
-numpy-stl
-pandas
-plotly
 py3Dmol
-requests
+biopython
+plotly
 scipy
-streamlit
+numpy-stl
+requests
