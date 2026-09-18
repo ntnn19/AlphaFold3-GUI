@@ -12,7 +12,8 @@ import plotly.express as px
 import io
 import py3Dmol
 from Bio import PDB
-
+import time
+import subprocess
 # Import your modules (make sure they are correctly installed in your environment)
 from afusion.execution import build_singularity_command, run_alphafold
 from afusion.sequence_input import (
@@ -96,6 +97,23 @@ def get_color_from_bfactor(bfactor):
         if b_min <= bfactor < b_max:
             return mapping['color']
     return 'grey'  # Default color
+
+
+def wait_for_slurm_job(job_id, poll_interval=15, timeout=None):
+    """Poll squeue until the job is no longer in the queue."""
+    elapsed = 0
+    while True:
+        result = subprocess.run(
+            ["squeue", "-j", str(job_id), "-h"],
+            capture_output=True, text=True
+        )
+        if result.stdout.strip() == "":
+            # Job no longer in queue = finished (successfully or not)
+            return True
+        time.sleep(poll_interval)
+        elapsed += poll_interval
+        if timeout and elapsed >= timeout:
+            return False
 
 def main():
 
@@ -381,9 +399,13 @@ def main():
             # Run the command and display output in a box
             with st.spinner("AlphaFold 3 is running..."):
                 output_placeholder = st.empty()
-                output = run_alphafold(
+                job_id = run_alphafold(
                     singularity_command, placeholder=output_placeholder
                 )
+
+            with st.spinner(f"Waiting for SLURM job {job_id} to complete..."):
+                finished = wait_for_slurm_job(job_id)
+
         except Exception as e:
             st.error(f"Error building or running Singularity command: {e}")
             logger.error(f"Error building singularity command: {e}")
@@ -392,15 +414,15 @@ def main():
         # Display the output in an expander box
         st.markdown("#### Command Output:")
         with st.expander("Show Command Output 📄", expanded=False):
-            st.text_area("Command Output", value=output, height=400)
+            st.text_area("Command Output", value=job_id, height=400)
 
         logger.info("AlphaFold 3 execution completed.")
 
         # Check if the output directory exists
         job_output_folder_name = job_name.lower().replace(' ', '_')
         output_folder_path = os.path.join(af_output_path, job_output_folder_name)
-
-        if os.path.exists(output_folder_path):
+        logger.info(f"Output folder path = {output_folder_path}")
+        if finished and os.path.exists(output_folder_path):
             st.success("AlphaFold 3 execution completed successfully.")
             st.info(f"Results are saved in: {output_folder_path}")
             logger.info(f"Results saved in: {output_folder_path}")

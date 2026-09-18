@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 import os
 from loguru import logger
+import re
 
 from afusion.config import (
     SINGULARITY_CONTAINER,
@@ -12,6 +13,13 @@ from afusion.config import (
     DEFAULT_AF_OUTPUT_PATH,
 )
 
+def extract_job_id(output: str) -> str | None:
+    match = re.search(r"Submitted batch job (\d+)", output)
+    return match.group(1) if match else None
+
+def extract_output_dir(cmd: str) -> str | None:
+    match = re.search(r"--output_dir=(\S+)", cmd)
+    return match.group(1) if match else None
 
 def run_alphafold(command, placeholder=None):
     """
@@ -20,24 +28,25 @@ def run_alphafold(command, placeholder=None):
     Submits the command to SLURM via sbatch instead of using subprocess.
     """
     # Create a temporary SLURM script
+    output_dir = extract_output_dir(command)
+    log_dir = os.path.join(output_dir,"log")
+    os.makedirs(log_dir,exist_ok=True)
     with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
         slurm_script_path = f.name
-
         # Write SLURM script content
         f.write("#!/bin/bash\n")
         f.write("#SBATCH --job-name=alphafold\n")
-        f.write("#SBATCH --output=slurm_output.log\n")
-        f.write("#SBATCH --error=slurm_error.log\n")
+        f.write(f"#SBATCH --output={log_dir}/slurm_output.log\n")
+        f.write(f"#SBATCH --error={log_dir}/slurm_error.log\n")
         f.write("#SBATCH --nodes=1\n")
         f.write("#SBATCH --ntasks=1\n")
         f.write("#SBATCH --time=24:00:00\n")
-        f.write("#SBATCH --partition=vds\n")
-        f.write("#SBATCH --mem=500G\n")
+        f.write("#SBATCH --partition=normal\n")
+        f.write("#SBATCH --mem=180G\n")
         f.write("#SBATCH --nodelist=cssblivuke105\n")
         f.write("#SBATCH --gres=gpu:1\n")
         f.write("\n")
         f.write(f"{command}\n")
-
     try:
         # Make the script executable
         os.chmod(slurm_script_path, 0o755)
@@ -61,9 +70,10 @@ def run_alphafold(command, placeholder=None):
         process.wait()
 
         # Get the job ID for monitoring
-        result = "".join(output_lines)
+        jobid = extract_job_id("".join(output_lines))
+        logger.debug(f"SBATCH jobid={jobid}")
 
-        return result
+        return jobid
     finally:
         # Clean up the temporary script
         try:
